@@ -1,0 +1,14 @@
+{
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+  "ignore": [
+    "**/node_modules",
+    "**/__pycache__"
+  ],
+  "reportArgumentType": false,
+  "reportOptionalMemberAccess": false,
+  "reportCallIssue": false,
+  "reportAttributeAccessIssue": false
+}

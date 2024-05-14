@@ -1,0 +1,23 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+    - id: check-yaml
+      args: ['--unsafe']
+    - id: check-json
+- repo: local
+  hooks:
+    - id: pyright
+      name: Pyright
+      entry: pyright
+      language: system
+      types: [python]
+      pass_filenames: false
+      always_run: true
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.4.4
+  hooks:
+    - id: ruff
+    - id: ruff-format

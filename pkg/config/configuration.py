@@ -1,6 +1,7 @@
 """Configuration class."""
 
 import base64
+from collections import OrderedDict
 from contextlib import contextmanager
 from copy import deepcopy
 from sys import version_info
