@@ -1,8 +1,3 @@
-# from config import config_from_json
-# from pkg.config import config_from_json
-
-# cfg = config_from_json("localConfig.json", read_from_file=True)
-
 import os
 from pkg.config import config_from_json, config_from_yaml
 
