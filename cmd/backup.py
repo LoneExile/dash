@@ -1,6 +1,13 @@
 import typer
 
-backupDb = typer.Typer()
+backupDb = typer.Typer(invoke_without_command=True)
+
+
+@backupDb.callback()
+def main(ctx: typer.Context):
+    """Backup database."""
+    if ctx.invoked_subcommand is None:
+        raise typer.Exit(code=typer.main.get_command(backupDb)(["--help"]))
 
 
 @backupDb.command()

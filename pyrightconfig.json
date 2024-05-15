@@ -5,7 +5,8 @@
   ],
   "ignore": [
     "**/node_modules",
-    "**/__pycache__"
+    "**/__pycache__",
+    "**/tests"
   ],
   "reportArgumentType": false,
   "reportOptionalMemberAccess": false,

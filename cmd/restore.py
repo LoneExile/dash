@@ -1,6 +1,13 @@
 import typer
 
-restoreDb = typer.Typer()
+restoreDb = typer.Typer(invoke_without_command=True)
+
+
+@restoreDb.callback()
+def main(ctx: typer.Context):
+    """Restore database."""
+    if ctx.invoked_subcommand is None:
+        raise typer.Exit(code=typer.main.get_command(restoreDb)(["--help"]))
 
 
 @restoreDb.command()
