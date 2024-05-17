@@ -1,6 +1,9 @@
 from rich.console import Console
 from rich.table import Table
 
+import logging
+from rich.logging import RichHandler
+
 
 class TermFormatter:
     def __init__(self):
@@ -9,6 +12,23 @@ class TermFormatter:
     def print(self, text):
         """Prints a text with a newline."""
         self.console.print(text)
+
+    def log(self, text, log_locals=False):
+        """Prints a Log message with a newline."""
+        self.console.log(text, log_locals=log_locals)
+
+    def logging(self, level=logging.INFO):
+        """Configures logging to use RichHandler.
+
+        Args:
+            level (int, optional): Logging level. Defaults to logging.INFO.
+        """
+        logging.basicConfig(
+            level=level,
+            format="%(message)s",
+            datefmt="[%X]",
+            handlers=[RichHandler(rich_tracebacks=True)],
+        )
 
     def print_table(self, data, columns, style="dim", header_style="bold magenta"):
         """Prints a table with dynamic columns and data.
@@ -23,5 +43,5 @@ class TermFormatter:
         for column in columns:
             self.table.add_column(column, style=style)
         for row in data:
-            self.table.add_row(*row)
+            self.table.add_row(*(str(item) for item in row))
         self.console.print(self.table)

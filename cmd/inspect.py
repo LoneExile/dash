@@ -1,27 +1,23 @@
-import typer
+from typing import Optional
 
-from pkg.database.postgres.postgres_manager import PostgresManager
-from pkg.term.formatter.rich import TermFormatter
+import typer
+from internal.db.database import DbDatabase
+from internal.db.table import DbTable
+from typing_extensions import Annotated
 
 inspector = typer.Typer(invoke_without_command=True)
+db = DbDatabase()
+tb = DbTable()
 
 
 @inspector.callback()
 def main(ctx: typer.Context):
     """Inspect the database."""
     if ctx.invoked_subcommand is None:
-        inspect()
+        db.inspect()
 
 
-def inspect():
-    fmt = TermFormatter()
-    dbm = PostgresManager()
-
-    try:
-        db_list = dbm.list_databases()
-        fmt.print_table(db_list, ["Database Name", "Size"])
-        total_db_size = round(dbm.fetch_total_database_size() / 1024 / 1024 / 1024, 2)
-
-        fmt.print(f"Total DB Size: [bold green]{total_db_size} GB[/bold green]")
-    finally:
-        dbm.close_connection()
+@inspector.command()
+def tables(schema: Annotated[Optional[str], typer.Argument()]):
+    """List all tables in the database."""
+    tb.list_tables(schema)

@@ -1,6 +1,13 @@
+from typing import Optional
+
 import typer
+from pkg.database.postgres.pg_restore import DbRestore
+from typing_extensions import Annotated
+from pkg.term.formatter.rich import TermFormatter
 
 restoreDb = typer.Typer(invoke_without_command=True)
+rst = DbRestore()
+fmt = TermFormatter()
 
 
 @restoreDb.callback()
@@ -16,9 +23,11 @@ def all():
 
 
 @restoreDb.command()
-def target(item: str):
-    print(f"Backing up item: {item}")
-
-
-if __name__ == "__main__":
-    restoreDb()
+def target(
+    table: Annotated[Optional[str], typer.Argument()],
+    file: Annotated[Optional[str], typer.Argument()],
+):
+    fmt.print(
+        f"Restoring up schema: [bold blue]{table}[/bold blue] from file: [bold blue]{file}[/bold blue]"
+    )
+    rst.restore_table(table, file)

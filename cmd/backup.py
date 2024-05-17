@@ -1,6 +1,13 @@
+from typing import Optional
+
 import typer
+from pkg.database.postgres.pg_backup import DbBackup
+from typing_extensions import Annotated
+from pkg.term.formatter.rich import TermFormatter
 
 backupDb = typer.Typer(invoke_without_command=True)
+bak = DbBackup()
+fmt = TermFormatter()
 
 
 @backupDb.callback()
@@ -16,9 +23,11 @@ def all():
 
 
 @backupDb.command()
-def target(item: str):
-    print(f"Backing up item: {item}")
-
-
-if __name__ == "__main__":
-    backupDb()
+def target(
+    table: Annotated[Optional[str], typer.Argument()],
+    file: Annotated[Optional[str], typer.Argument()],
+):
+    fmt.print(
+        f"Backing up table: [bold blue]{table}[/bold blue] to file: [bold blue]{file}[/bold blue]"
+    )
+    bak.backup_table(table, file)
