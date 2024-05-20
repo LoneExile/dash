@@ -7,8 +7,8 @@ class DbDatabase(Db):
 
     def inspect(self):
         try:
-            db_list = self.dbm.list_databases()
-            self.fmt.print_table(db_list, ["Database Name", "Size"])
+            columns, db_list = self.dbm.list_databases()
+            self.fmt.print_table(db_list, columns)
             total_db_size = self.utils.convert_bytes_to_gb(
                 self.dbm.fetch_total_database_size()
             )

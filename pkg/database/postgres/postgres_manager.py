@@ -2,6 +2,7 @@ import subprocess
 
 import psycopg
 from pkg.database.postgres import Postgres
+from typing import List, Tuple
 
 
 class PostgresManager(Postgres):
@@ -19,6 +20,7 @@ class PostgresManager(Postgres):
 
     def get_psql_path(self):
         """Find the path to the psql executable."""
+        # TODO: Add support for Windows
         psql_path = subprocess.run(
             ["which", "psql"], capture_output=True, text=True
         ).stdout.strip()
@@ -30,6 +32,7 @@ class PostgresManager(Postgres):
 
     def get_pg_dump_path(self):
         """Find the path to the pg_dump executable."""
+        # TODO: Add support for Windows
         pg_dump_path = subprocess.run(
             ["which", "pg_dump"], capture_output=True, text=True
         ).stdout.strip()
@@ -39,7 +42,7 @@ class PostgresManager(Postgres):
             )
         return pg_dump_path
 
-    def list_databases(self):
+    def list_databases(self) -> Tuple[List[str], List[Tuple[str, str]]]:
         """List all non-template databases and their sizes."""
         if self.conn is None:
             self.init_connection()
@@ -47,13 +50,14 @@ class PostgresManager(Postgres):
         with self.conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT datname, pg_size_pretty(pg_database_size(datname))
+                SELECT datname as database_name, pg_size_pretty(pg_database_size(datname)) as size
                 FROM pg_database
                 WHERE datistemplate = false;
                 """
             )
-
-            return cur.fetchall()
+            rows = cur.fetchall()
+            columns = [desc[0] for desc in cur.description] if cur.description else []
+            return columns, rows
 
     def list_tables(self, database_name):
         """List all tables in a given database."""
