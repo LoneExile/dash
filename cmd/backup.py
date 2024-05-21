@@ -20,6 +20,7 @@ def main(ctx: typer.Context):
 @backupDb.command()
 def all():
     print("Backing up all item")
+    bak.backup_sql("./books/demo/chapters/anyName/ApplicationLogs1/delete.sql")
 
 
 @backupDb.command()

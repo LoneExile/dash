@@ -1,5 +1,7 @@
 from pkg.database.postgres.postgres_manager import PostgresManager
 import subprocess
+import os
+import csv
 
 
 class DbBackup(PostgresManager):
@@ -37,3 +39,49 @@ class DbBackup(PostgresManager):
             )
         except Exception as e:
             self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
+
+    def backup_sql(self, query_file_path):
+        csv_file_path = "temp.csv"
+        try:
+            with open(query_file_path, "r") as file:
+                query = file.read()
+
+            os.makedirs(self.backup_dir, exist_ok=True)
+
+            if self.conn is None:
+                self.init_connection("Basel")
+
+            with self.conn.cursor() as cur:
+                with open(csv_file_path, "w") as f:
+                    with cur.copy(query) as copy:
+                        for data in copy:
+                            f.write(data.tobytes().decode("utf-8"))
+
+            self.fmt.print(
+                f"Backup completed to [bold blue]{csv_file_path}[/bold blue]"
+            )
+            if os.path.getsize(csv_file_path) == 0:
+                print(
+                    "The CSV file is empty. Please check the query and connection parameters."
+                )
+            else:
+                insert_statements = []
+                with open(csv_file_path, newline="") as csvfile:
+                    reader = csv.reader(csvfile)
+                    headers = next(reader)
+
+                    for row in reader:
+                        values = [f"'{value}'" if value else "NULL" for value in row]
+                        insert_statement = f"INSERT INTO \"ApplicationLogs\" ({', '.join(headers)}) VALUES ({', '.join(values)});"
+                        insert_statements.append(insert_statement)
+
+                with open("./test.sql", "w") as sqlfile:
+                    sqlfile.write("\n".join(insert_statements))
+
+                print("SQL insert statements have been written to ./test.sql")
+
+        except Exception as e:
+            self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
+        finally:
+            if os.path.exists(csv_file_path):
+                os.remove(csv_file_path)

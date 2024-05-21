@@ -9,8 +9,11 @@ class PostgresManager(Postgres):
     def __init__(self):
         super().__init__()
 
-    def init_connection(self):
+    def init_connection(self, db_target=None):
         """Initialize a new database connection using the DSN provided."""
+        if db_target:
+            self.database_name = db_target
+        self.dsn = f"dbname={self.database_name} user={self.user} password={self.password} host={self.host} port={self.port}"
         self.conn = psycopg.connect(self.dsn)
 
     def close_connection(self):

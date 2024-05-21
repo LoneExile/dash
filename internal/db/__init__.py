@@ -1,5 +1,5 @@
-from pkg.config import cfg
 from internal.utils import Utils
+from pkg.config import cfg
 from pkg.term.formatter.rich import TermFormatter
 
 

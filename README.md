@@ -12,3 +12,8 @@
 ```bash
 pip install -r requirements.txt
 ```
+
+## TODO
+
+- [ ] merge config files
+- [ ] tui

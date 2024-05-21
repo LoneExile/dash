@@ -1,0 +1,7 @@
+
+anyName:
+  db: tester
+  order: ["ApplicationLogs1", "ApplicationLogs2", "ApplicationLogs3"]
+anyName2:
+  # db: basel
+  order: ["ApplicationLogs3", "ApplicationLogs2"]
