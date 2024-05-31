@@ -25,3 +25,9 @@ repos:
     rev: 24.4.2
     hooks:
     - id: black
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.2.6
+  hooks:
+    - id: codespell
+      exclude: (?x)^(test/fixtures/.*|pyproject.toml)$
+      additional_dependencies: [tomli]
