@@ -1,7 +1,8 @@
-from pkg.database.postgres.postgres_manager import PostgresManager
-import subprocess
-import os
 import csv
+import os
+import subprocess
+
+from pkg.database.postgres.postgres_manager import PostgresManager
 
 
 class DbBackup(PostgresManager):
@@ -11,7 +12,7 @@ class DbBackup(PostgresManager):
     def backup_table(self, table_name, backup_file):
         try:
             if self.name_escaping:
-                table_name = self.escape_name(table_name)
+                table_name = self.helpers.escape_name(table_name)
 
             pg_dump_path = self.get_pg_dump_path()
             backup_file = f"{backup_file}.sql"
@@ -40,7 +41,7 @@ class DbBackup(PostgresManager):
         except Exception as e:
             self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
 
-    def backup_sql(self, query_file_path):
+    def backup_sql(self, query_file_path, backup_file="latest"):
         csv_file_path = "temp.csv"
         try:
             with open(query_file_path, "r") as file:
@@ -57,9 +58,9 @@ class DbBackup(PostgresManager):
                         for data in copy:
                             f.write(data.tobytes().decode("utf-8"))
 
-            self.fmt.print(
-                f"Backup completed to [bold blue]{csv_file_path}[/bold blue]"
-            )
+            # self.fmt.print(
+            #     f"Backup completed to [bold blue]{csv_file_path}[/bold blue]"
+            # )
             if os.path.getsize(csv_file_path) == 0:
                 print(
                     "The CSV file is empty. Please check the query and connection parameters."
@@ -75,10 +76,12 @@ class DbBackup(PostgresManager):
                         insert_statement = f"INSERT INTO \"ApplicationLogs\" ({', '.join(headers)}) VALUES ({', '.join(values)});"
                         insert_statements.append(insert_statement)
 
-                with open("./test.sql", "w") as sqlfile:
+                with open(self.backup_dir + backup_file + ".sql", "w") as sqlfile:
                     sqlfile.write("\n".join(insert_statements))
 
-                print("SQL insert statements have been written to ./test.sql")
+                # print(
+                #     f"SQL insert statements have been written to {self.backup_dir + backup_file + '.sql'}"
+                # )
 
         except Exception as e:
             self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")

@@ -14,8 +14,3 @@ class Db:
         else:
             raise ValueError("Unsupported database type")
         self.dbm = self.utils.dynamic_import(module_name, class_name)()
-
-        try:
-            self.Play = cfg.Play
-        except AttributeError:
-            self.Play = "default"

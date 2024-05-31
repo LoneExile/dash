@@ -1,5 +1,6 @@
 from pkg.config import cfg
 from pkg.database.database_interface import DatabaseInterface
+from pkg.database.postgres.helpers import Helpers
 from pkg.term.formatter.rich import TermFormatter
 
 
@@ -15,8 +16,4 @@ class Postgres(DatabaseInterface):
         self.dsn = f"dbname={self.database_name} user={self.user} password={self.password} host={self.host} port={self.port}"
         self.conn = None
         self.fmt = TermFormatter()
-
-        try:
-            self.Play = cfg.Play
-        except AttributeError:
-            self.Play = "default"
+        self.helpers = Helpers()

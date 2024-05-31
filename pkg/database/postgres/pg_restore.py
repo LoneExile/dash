@@ -1,5 +1,6 @@
-from pkg.database.postgres.postgres_manager import PostgresManager
 import subprocess
+
+from pkg.database.postgres.postgres_manager import PostgresManager
 
 
 class DbRestore(PostgresManager):

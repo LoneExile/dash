@@ -14,7 +14,7 @@ class DatabaseInterface(ABC):
         pass
 
     @abstractmethod
-    def list_databases(self) -> Tuple[List[str], List[Tuple[str, str]]]:
+    def list_databases(self, db_target) -> Tuple[List[str], List[Tuple[str, str]]]:
         """List all databases and their sizes.
 
         Returns:

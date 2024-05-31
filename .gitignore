@@ -162,3 +162,5 @@ localConfig.*
 tests
 
 backup
+.ruff_cache
+demo

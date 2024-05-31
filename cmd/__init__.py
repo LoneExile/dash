@@ -10,8 +10,8 @@ cmd.add_typer(inspect.inspector, name="inspect")
 cmd.add_typer(read.readBook, name="read")
 
 
-@cmd.callback()
-def main(ctx: typer.Context):
-    """Handle the main entry point with no specific commands."""
-    if ctx.invoked_subcommand is None:
-        raise typer.Exit(code=typer.main.get_command(cmd)(["--help"]))
+# @cmd.callback()
+# def main(ctx: typer.Context):
+#     """Handle the main entry point with no specific commands."""
+#     if ctx.invoked_subcommand is None:
+#         raise typer.Exit(code=typer.main.get_command(cmd)(["--help"]))

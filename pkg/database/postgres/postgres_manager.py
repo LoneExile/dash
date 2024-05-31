@@ -1,8 +1,9 @@
 import subprocess
+from typing import List, Tuple
 
 import psycopg
+from jinja2 import Environment
 from pkg.database.postgres import Postgres
-from typing import List, Tuple
 
 
 class PostgresManager(Postgres):
@@ -23,7 +24,6 @@ class PostgresManager(Postgres):
 
     def get_psql_path(self):
         """Find the path to the psql executable."""
-        # TODO: Add support for Windows
         psql_path = subprocess.run(
             ["which", "psql"], capture_output=True, text=True
         ).stdout.strip()
@@ -35,7 +35,6 @@ class PostgresManager(Postgres):
 
     def get_pg_dump_path(self):
         """Find the path to the pg_dump executable."""
-        # TODO: Add support for Windows
         pg_dump_path = subprocess.run(
             ["which", "pg_dump"], capture_output=True, text=True
         ).stdout.strip()
@@ -45,10 +44,10 @@ class PostgresManager(Postgres):
             )
         return pg_dump_path
 
-    def list_databases(self) -> Tuple[List[str], List[Tuple[str, str]]]:
+    def list_databases(self, db_target) -> Tuple[List[str], List[Tuple[str, str]]]:
         """List all non-template databases and their sizes."""
         if self.conn is None:
-            self.init_connection()
+            self.init_connection(db_target)
 
         with self.conn.cursor() as cur:
             cur.execute(
@@ -62,10 +61,10 @@ class PostgresManager(Postgres):
             columns = [desc[0] for desc in cur.description] if cur.description else []
             return columns, rows
 
-    def list_tables(self, database_name):
+    def list_tables(self, db_target):
         """List all tables in a given database."""
         if self.conn is None:
-            self.init_connection()
+            self.init_connection(db_target)
 
         with self.conn.cursor() as cur:
             cur.execute(
@@ -74,7 +73,7 @@ class PostgresManager(Postgres):
                 pg_size_pretty(pg_total_relation_size(quote_ident(table_name)))
                 FROM information_schema.tables
                 WHERE table_schema = 'public'
-                AND table_catalog = '{database_name}';
+                AND table_catalog = '{db_target}';
                 """
             )
 
@@ -123,6 +122,62 @@ class PostgresManager(Postgres):
             total_size = result[0]
             return total_size
 
-    def escape_name(self, name):
-        """Escape a given name."""
-        return '"' + '\\"' + name + '\\"' + '"'
+    def get_table_size(self, table_name):
+        if self.name_escaping:
+            table_name = '"' + table_name + '"'
+        with self.conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT
+                    pg_total_relation_size('{table_name}')
+                """
+            )
+            size = cur.fetchone()
+            return size[0] if size else None
+
+    def get_data_single(self, sql_file_path, db_target=None):
+        """Get data from a SQL query file."""
+        with open(sql_file_path, "r") as file:
+            query = file.read()
+
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            cur.execute(query)
+            row = cur.fetchall()[0][0]
+            return row
+
+    def get_data_single_by_id(self, sql_file_path, id, db_target=None):
+        with open(sql_file_path, "r") as file:
+            sql_query = file.read()
+
+        env = Environment()
+        template = env.from_string(sql_query)
+        rendered_sql_query = template.render(ID=id)
+
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            cur.execute(rendered_sql_query)
+            rows = cur.fetchall()
+            # return rows
+            data_list = [str(item[0]) for item in rows if item[0] is not None]
+            return data_list
+
+    def get_data_list(self, sql_file_path, db_target=None):
+        """Get data from a SQL query file."""
+        with open(sql_file_path, "r") as file:
+            query = file.read()
+
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            cur.execute(query)
+            rows = cur.fetchall()
+            data_list = [str(item[0]) for item in rows]
+            return data_list
+
+            # return row
