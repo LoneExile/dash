@@ -1,2 +1,2 @@
 DELETE FROM "ResultViews "
-WHERE "CalculationId " = @calculationId
+WHERE "CalculationId " = {{ ID }}

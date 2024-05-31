@@ -1,2 +1,2 @@
-DELETE FROM "Calculations "
-WHERE "CalculationId " = {{ calculationId }};
+DELETE FROM "Calculations"
+WHERE "CalculationId " = '{{ ID }}';

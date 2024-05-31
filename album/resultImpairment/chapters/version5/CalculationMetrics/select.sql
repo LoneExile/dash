@@ -3,4 +3,4 @@ SELECT
 FROM
     "CalculationMetrics"
 WHERE
-    "CalculationId " = {{ calculationId }}
+    "CalculationId " = '{{ ID }}';

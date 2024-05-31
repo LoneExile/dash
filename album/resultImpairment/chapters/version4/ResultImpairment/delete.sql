@@ -5,5 +5,5 @@ WHERE ctid = ANY (ARRAY (
             FROM
                 "ResultImpairment"
             WHERE
-                "CalculationId" = {{ calculationId }}
+                "CalculationId" = '{{ ID }}'
             LIMIT {{ chunkSize }}));

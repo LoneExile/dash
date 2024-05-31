@@ -1,2 +1,2 @@
 DELETE FROM "CalculationMetrics"
-WHERE "CalculationId " = {{ calculationId }}
+WHERE "CalculationId " = '{{ ID }}'

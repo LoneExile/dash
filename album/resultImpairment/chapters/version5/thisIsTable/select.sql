@@ -1,6 +1,5 @@
-SELECT
-    "TableName"
+SELECT "TableName"
 FROM
     "CalculationTableRegistry"
 WHERE
-    "CalculationId" = '{{ ID }}'
+    "CalculationId" = '{{ ID }}';

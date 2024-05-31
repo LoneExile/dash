@@ -3,4 +3,4 @@ SELECT
 FROM
     "ResultViews"
 WHERE
-    "CalculationId " = {{ calculationId }}
+    "CalculationId " = '{{ ID }}';

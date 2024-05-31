@@ -1,29 +1,29 @@
 WITH cal AS (
-    SELECT
-        c."CalculationId" AS calculationId
+    SELECT c."CalculationId" AS calculationid
     FROM
-        "Calculations" c
+        "Calculations" AS c
     WHERE
         c."Data"::json ->> 'calculationSpecVersion' = '4'
 ),
+
 cal_metrics AS (
-    SELECT
-        m."CalculationId" AS calculationId
+    SELECT m."CalculationId" AS calculationid
     FROM
-        "ResultSegmentImpairment" m
+        "ResultSegmentImpairment" AS m
     WHERE
         m."CalculationId" IN (
-            SELECT
-                calculationId
+            SELECT calculationid
             FROM
-                cal))
-    SELECT
-        SUM(pg_column_size(m)) AS filesize_metrics
+                cal
+        )
+)
+
+SELECT SUM(PG_COLUMN_SIZE(m.*)) AS filesize_metrics
 FROM
     "ResultSegmentImpairment" AS m
 WHERE
     m."CalculationId" IN (
-        SELECT
-            calculationId
+        SELECT calculationid
         FROM
-            cal_metrics)
+            cal_metrics
+    )
