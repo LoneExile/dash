@@ -1,13 +1,12 @@
 import typer
 
-from . import backup, inspect, restore, read
+from . import backup, inspect, restore
 
 cmd = typer.Typer(invoke_without_command=True)
 
 cmd.add_typer(backup.backupDb, name="backup")
 cmd.add_typer(restore.restoreDb, name="restore")
 cmd.add_typer(inspect.inspector, name="inspect")
-cmd.add_typer(read.readBook, name="read")
 
 
 # @cmd.callback()

@@ -8,6 +8,7 @@ from internal.reader import Reader
 
 class Mode(Enum):
     INSPECT = 1
+    BACKUP = 2
 
 
 class ReaderManager(Reader):
@@ -67,10 +68,14 @@ class ReaderManager(Reader):
             indexer = []
         if sum is None:
             sum = [0]
-        # print(f"D: {depth} - {base_path}")
 
-        dirs = {k: v for k, v in structure.items() if isinstance(v, dict)}
-        files = {k: v for k, v in structure.items() if not isinstance(v, dict)}
+        dirs = {}
+        files = {}
+        for k, v in structure.items():
+            if isinstance(v, dict):
+                dirs[k] = v
+            else:
+                files[k] = v
 
         for file_name, _ in files.items():
             current_path = os.path.join(base_path, file_name)
@@ -100,11 +105,7 @@ class ReaderManager(Reader):
                             else:
                                 value = self.utils.get_pretty_size(0)
                             sql_results.append(
-                                (
-                                    current_dir,
-                                    value,
-                                    upper_dir,
-                                )
+                                (current_dir, value, upper_dir, "partial")
                             )
                         elif mode == Mode.INSPECT and current_dir in table_list:
                             for index in indexer:
@@ -121,6 +122,7 @@ class ReaderManager(Reader):
                                                 table,
                                                 self.utils.get_pretty_size(value),
                                                 upper_dir,
+                                                "table",
                                             )
                                         )
 
@@ -130,42 +132,27 @@ class ReaderManager(Reader):
             current_path = os.path.join(base_path, dir_name)
 
             dir_key = os.path.basename(current_path)
-            if dir_key in self.appendix["chapters"]:
-                order = self.appendix["chapters"].get(dir_key, [])["queries"]
+            order = self.appendix["chapters"].get(dir_key, {}).get("queries", [])
 
-                ordered_dirs = {}
-                for item in order:
-                    if item["name"] in sub_structure:
-                        ordered_dirs[item["name"]] = sub_structure[item["name"]]
-
-                order_list = [item["name"] for item in order]
-                unordered_dirs = {}
-                for k in sub_structure:
-                    if k not in order_list:
-                        unordered_dirs[k] = sub_structure[k]
-                combined_dirs = {**ordered_dirs, **unordered_dirs}
-                self.process_structure_v1(
-                    combined_dirs,
-                    mode,
-                    current_path,
-                    sql_results,
-                    depth + 1,
-                    indexer,
-                    sum,
+            ordered_dirs = {
+                k: v
+                for k, v in sorted(
+                    sub_structure.items(),
+                    key=lambda x: order.index(x[0]) if x[0] in order else len(order),
                 )
-            else:
-                self.process_structure_v1(
-                    sub_structure,
-                    mode,
-                    current_path,
-                    sql_results,
-                    depth + 1,
-                    indexer,
-                    sum,
-                )
+            }
+            self.process_structure_v1(
+                ordered_dirs,
+                mode,
+                current_path,
+                sql_results,
+                depth + 1,
+                indexer,
+                sum,
+            )
 
         if mode == Mode.INSPECT and base_path == "":
-            self.fmt.print_table(sql_results, ["Table Name", "Size", "Chapter"])
+            self.fmt.print_table(sql_results, ["Table Name", "Size", "Chapter", "type"])
             self.fmt.print(
                 f"Total Size: [bold green]{self.utils.get_pretty_size(sum[0])}[/bold green]"
             )
