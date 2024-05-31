@@ -247,7 +247,7 @@ def config_from_env(
 
 
 class PathConfiguration(Configuration):
-    """Configuration from a filesytem path."""
+    """Configuration from a filesystem path."""
 
     def __init__(
         self,
