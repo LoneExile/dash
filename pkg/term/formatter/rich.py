@@ -9,6 +9,9 @@ class TermFormatter:
     def __init__(self):
         self.console = Console()
 
+    def text(self):
+        return Console()
+
     def print(self, text):
         """Prints a text with a newline."""
         self.console.print(text)
