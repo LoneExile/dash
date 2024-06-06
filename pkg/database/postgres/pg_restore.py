@@ -7,9 +7,12 @@ class DbRestore(PostgresManager):
     def __init__(self):
         super().__init__()
 
-    def restore_table(self, table, file_path):
+    def restore_table(self, table, file_path, db_target):
         """Restore a table from a backup file."""
         try:
+            if self.conn is None:
+                self.init_connection(db_target)
+
             psql_path = self.get_psql_path()
             cmd = f"{psql_path} -h {self.host} -p {self.port} -U {self.user} -d {table} -f {file_path}"
             result = subprocess.run(

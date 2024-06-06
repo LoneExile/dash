@@ -7,7 +7,7 @@ from rich.logging import RichHandler
 
 class TermFormatter:
     def __init__(self):
-        self.console = Console()
+        self.console = self.text()
 
     def text(self):
         return Console()

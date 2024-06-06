@@ -26,8 +26,9 @@ def all():
 def target(
     table: Annotated[Optional[str], typer.Argument()],
     file: Annotated[Optional[str], typer.Argument()],
+    db_target: Annotated[Optional[str], typer.Argument()] = None,
 ):
     fmt.print(
         f"Restoring up schema: [bold blue]{table}[/bold blue] from file: [bold blue]{file}[/bold blue]"
     )
-    rst.restore_table(table, file)
+    rst.restore_table(table, file, db_target)

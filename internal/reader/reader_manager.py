@@ -9,7 +9,12 @@ from time import sleep
 
 class Mode(Enum):
     INSPECT = 1
-    BACKUP = 2
+    BACKUP_CREATE_TABLE = 2
+
+
+class DbBackup(Enum):
+    BACKUP_TARGET_FILE = "backup.sql"
+    BACKUP_TABLE_NAME = "BACKUP_TABLE_NAME"
 
 
 class ReaderManager(Reader):
@@ -47,16 +52,11 @@ class ReaderManager(Reader):
     def output_as_yaml(self, structure):
         return yaml.dump(structure, default_flow_style=False)
 
-    # for chapter in chapters:
-    #     sub_structure = structure[chapter]
-    #     base_path = os.path.join("", chapter)
-    #     appendix = {"chapters": {chapter: appendix["chapters"][chapter]}}
-    #     self.process_structure_v1(sub_structure, mode, base_path, sql_results, depth, indexer)
-
     def process_structure_v1(
         self,
         structure,
         mode=Mode.INSPECT,
+        book=None,
         base_path="",
         sql_results=None,
         depth=0,
@@ -71,6 +71,8 @@ class ReaderManager(Reader):
                 indexer = []
             if sum is None:
                 sum = [0]
+            if book is None:
+                book = "null"
 
             dirs = {}
             files = {}
@@ -100,6 +102,13 @@ class ReaderManager(Reader):
                         curr_order_list = [
                             item["name"] for item in curr_order["queries"]
                         ]
+                        sql_file_path = os.path.join(
+                            self.cfg.Postgres.PgBackupDir
+                            + self.current_time
+                            + "/"
+                            + book
+                            + "/"
+                        )
                         if current_dir in curr_order_list:
                             db = self.appendix["chapters"][upper_dir]["db"]
                             if mode == Mode.INSPECT and file_name == "size.sql":
@@ -130,6 +139,48 @@ class ReaderManager(Reader):
                                                     "table",
                                                 )
                                             )
+                            elif (
+                                mode == Mode.BACKUP_CREATE_TABLE
+                                and file_name == DbBackup.BACKUP_TARGET_FILE.value
+                            ):
+                                db_backup_table_name = "temp_backup_" + current_dir
+                                try:
+                                    self.pg.run_query_template(
+                                        current_path,
+                                        db,
+                                        BACKUP_TABLE_NAME=db_backup_table_name,
+                                    )
+                                    self.bak.backup_table(
+                                        current_dir,
+                                        current_dir,
+                                        db,
+                                        sql_file_path,
+                                    )
+                                    print(f"Backup table: {current_dir}")
+                                except Exception as e:
+                                    self.fmt.print(f"Error: {e}")
+                                finally:
+                                    self.pg.drop_table(
+                                        db_backup_table_name,
+                                        db,
+                                    )
+                            elif (
+                                mode == Mode.BACKUP_CREATE_TABLE
+                                and current_dir in table_list
+                            ):
+                                for index in indexer:
+                                    list_table = self.pg.get_data_single_by_id(
+                                        current_path, index, db
+                                    )
+                                    if list_table and list_table != []:
+                                        for table in list_table:
+                                            print(f"Backup table: {table}")
+                                            self.bak.backup_table(
+                                                table,
+                                                table,
+                                                db,
+                                                sql_file_path,
+                                            )
 
             for dir_name, sub_structure in dirs.items():
                 if dir_name.startswith("_"):
@@ -148,9 +199,11 @@ class ReaderManager(Reader):
                         ),
                     )
                 }
+
                 self.process_structure_v1(
                     ordered_dirs,
                     mode,
+                    book,
                     current_path,
                     sql_results,
                     depth + 1,

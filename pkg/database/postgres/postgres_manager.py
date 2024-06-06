@@ -166,6 +166,37 @@ class PostgresManager(Postgres):
             data_list = [str(item[0]) for item in rows if item[0] is not None]
             return data_list
 
+    def run_query(self, sql_file_path, db_target=None):
+        """Run a SQL query file."""
+        with open(sql_file_path, "r") as file:
+            query = file.read()
+
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            cur.execute(query)
+
+    def run_query_template(self, sql_file_path, db_target=None, **kwargs):
+        """Run a SQL query file with Jinja2 templating."""
+        with open(sql_file_path, "r") as file:
+            query = file.read()
+
+        env = Environment()
+        template = env.from_string(query)
+        rendered_query = template.render(**kwargs)
+
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(rendered_query)
+                self.conn.commit()
+            except Exception as e:
+                self.conn.rollback()
+                print(e)
+
     def get_data_list(self, sql_file_path, db_target=None):
         """Get data from a SQL query file."""
         with open(sql_file_path, "r") as file:
@@ -180,4 +211,18 @@ class PostgresManager(Postgres):
             data_list = [str(item[0]) for item in rows]
             return data_list
 
-            # return row
+    def drop_table(self, table_name, db_target=None):
+        """Drop a table."""
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        if self.name_escaping:
+            table_name = '"' + table_name + '"'
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(f"DROP TABLE {table_name};")
+                self.conn.commit()
+            except Exception as e:
+                self.conn.rollback()
+                print(e)
