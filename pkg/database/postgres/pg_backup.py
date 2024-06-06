@@ -9,16 +9,31 @@ class DbBackup(PostgresManager):
     def __init__(self):
         super().__init__()
 
-    def backup_table(self, table_name, backup_file):
+    def backup_table(self, table_name, backup_file, db_target, backup_dir=None):
         try:
             if self.name_escaping:
                 table_name = self.helpers.escape_name(table_name)
 
+            if self.conn is None:
+                self.init_connection(db_target)
+
+            if backup_dir is not None:
+                self.backup_dir = backup_dir
+
             pg_dump_path = self.get_pg_dump_path()
             backup_file = f"{backup_file}.sql"
 
-            command = f"{pg_dump_path} --host {self.host} --port {self.port} --username {self.user} --format plain --verbose --file {self.backup_dir + backup_file} --table {table_name} {self.database_name}"
-            result = subprocess.run(
+            os.makedirs(self.backup_dir, exist_ok=True)
+
+            # command = f"{pg_dump_path} --host {self.host} --port {self.port} --username {self.user} --format plain --data-only --column-inserts --verbose --file {self.backup_dir + backup_file} --table {table_name} {self.database_name}"
+            command = (
+                f"{pg_dump_path} --host {self.host} --port {self.port} "
+                f"--username {self.user} --format plain --data-only --column-inserts "
+                f"--verbose --file {self.backup_dir + backup_file} --table {table_name} "
+                f"{self.database_name}"
+            )
+
+            result = subprocess.run(  # noqa: F841
                 command,
                 shell=True,
                 check=True,
@@ -27,21 +42,18 @@ class DbBackup(PostgresManager):
                 universal_newlines=True,
                 env={"PGPASSWORD": self.password},
             )
-            output = result.stdout
-            error = result.stderr
+            # output = result.stdout
+            # error = result.stderr
 
-            if output:
-                self.fmt.log(f"[bold green]{output}[/bold green]")
-            if error:
-                self.fmt.log(f"[bold red]{error}[/bold red]")
+            # if output:
+            #     self.fmt.log(f"[bold green]{output}[/bold green]")
+            # if error:
+            #     self.fmt.log(f"[bold red]{error}[/bold red]")
 
-            self.fmt.print(
-                f"Backup of table [bold blue]{table_name}[/bold blue] completed to [bold blue]{self.backup_dir + backup_file}[/bold blue]"
-            )
         except Exception as e:
             self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
 
-    def backup_sql(self, query_file_path, backup_file="latest"):
+    def backup_sql(self, query_file_path, backup_file="latest", db_target=None):
         csv_file_path = "temp.csv"
         try:
             with open(query_file_path, "r") as file:
@@ -50,7 +62,7 @@ class DbBackup(PostgresManager):
             os.makedirs(self.backup_dir, exist_ok=True)
 
             if self.conn is None:
-                self.init_connection("Basel")
+                self.init_connection(db_target)
 
             with self.conn.cursor() as cur:
                 with open(csv_file_path, "w") as f:
@@ -58,9 +70,6 @@ class DbBackup(PostgresManager):
                         for data in copy:
                             f.write(data.tobytes().decode("utf-8"))
 
-            # self.fmt.print(
-            #     f"Backup completed to [bold blue]{csv_file_path}[/bold blue]"
-            # )
             if os.path.getsize(csv_file_path) == 0:
                 print(
                     "The CSV file is empty. Please check the query and connection parameters."
@@ -78,10 +87,6 @@ class DbBackup(PostgresManager):
 
                 with open(self.backup_dir + backup_file + ".sql", "w") as sqlfile:
                     sqlfile.write("\n".join(insert_statements))
-
-                # print(
-                #     f"SQL insert statements have been written to {self.backup_dir + backup_file + '.sql'}"
-                # )
 
         except Exception as e:
             self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
