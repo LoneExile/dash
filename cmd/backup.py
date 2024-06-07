@@ -4,7 +4,8 @@ from typing import Optional
 import typer
 from internal.db.database import DbDatabase
 from internal.db.table import DbTable
-from internal.reader.reader_manager import Mode, ReaderManager
+from internal.reader.reader_manager import ReaderManager
+from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from internal.utils import Utils
 from pkg.config import cfg
 from pkg.database.postgres.pg_backup import DbBackup
@@ -19,19 +20,12 @@ db = DbDatabase()
 tb = DbTable()
 rm = ReaderManager()
 utils = Utils()
+v1 = ProcessStructureV1()
 
 
 @backupDb.callback()
 def main(
     ctx: typer.Context,
-    target: Annotated[
-        str,
-        typer.Option(
-            "--target",
-            "-t",
-            help="The database to inspect table.",
-        ),
-    ] = None,
     book: Annotated[
         str,
         typer.Option(
@@ -40,6 +34,14 @@ def main(
             help="Inspect by Book.",
         ),
     ] = None,
+    clean: Annotated[
+        bool,
+        typer.Option(
+            "--clean",
+            "-C",
+            help="Clean up the database after backup.",
+        ),
+    ] = False,
 ):
     """Backup database."""
     if book is not None:
@@ -57,7 +59,10 @@ def main(
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
-                    rm.process_structure_v1(dir_struc, Mode.BACKUP_CREATE_TABLE, book)
+                    v1.clean = clean
+                    v1.appendix = rm.appendix
+                    v1.book = book
+                    v1.process_structure_v1(dir_struc, ModeKeys.BACKUP_CREATE_TABLE)
                 except Exception as e:
                     typer.echo(f"Error: {e}")
             case _:

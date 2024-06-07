@@ -5,7 +5,8 @@ import os
 import typer
 from internal.db.database import DbDatabase
 from internal.db.table import DbTable
-from internal.reader.reader_manager import ReaderManager, Mode
+from internal.reader.reader_manager import ReaderManager
+from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from pkg.config import cfg
 from typing_extensions import Annotated
 from internal.utils import Utils
@@ -15,6 +16,7 @@ db = DbDatabase()
 tb = DbTable()
 rm = ReaderManager()
 utils = Utils()
+v1 = ProcessStructureV1()
 
 
 @inspector.callback()
@@ -27,22 +29,6 @@ def main(
             help="The database to inspect table.",
         ),
     ] = None,
-    # size: Annotated[
-    #     bool,
-    #     typer.Option(
-    #         "--size",
-    #         "-s",
-    #         help="The database to inspect table.",
-    #     ),
-    # ] = False,
-    # test: Annotated[
-    #     bool,
-    #     typer.Option(
-    #         "--wize",
-    #         "-w",
-    #         help="The database to inspect table.",
-    #     ),
-    # ] = False,
     book: Annotated[
         str,
         typer.Option(
@@ -70,7 +56,7 @@ def main(
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
-                    rm.process_structure_v1(dir_struc, Mode.INSPECT)
+                    v1.process_structure_v1(dir_struc, ModeKeys.INSPECT)
                 except Exception as e:
                     typer.echo(f"Error: {e}")
             case _:

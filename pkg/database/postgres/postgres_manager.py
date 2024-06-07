@@ -175,7 +175,12 @@ class PostgresManager(Postgres):
             self.init_connection(db_target)
 
         with self.conn.cursor() as cur:
-            cur.execute(query)
+            try:
+                cur.execute(query)
+                self.conn.commit()
+            except Exception as e:
+                self.conn.rollback()
+                print(e)
 
     def run_query_template(self, sql_file_path, db_target=None, **kwargs):
         """Run a SQL query file with Jinja2 templating."""
