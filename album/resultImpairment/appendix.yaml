@@ -7,8 +7,8 @@ chapters:
         type: partial
       - name: ResultViews
         type: partial
-      # - name: thisIsTable
-      #   type: table
+      - name: thisIsTable
+        type: table
   # version4:
   #   db: Ifrs9Impairment
   #   queries:

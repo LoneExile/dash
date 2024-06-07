@@ -1,9 +1,5 @@
-SELECT
-    *
-FROM
-    "CalculationMetrics"
-WHERE
-    "CalculationId" IN (
+DELETE FROM "ResultViews"
+WHERE "CalculationId" IN (
         SELECT
             "CalculationId" AS calculationid
         FROM

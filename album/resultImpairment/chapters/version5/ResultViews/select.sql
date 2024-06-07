@@ -3,4 +3,10 @@ SELECT
 FROM
     "ResultViews"
 WHERE
-    "CalculationId " = '{{ ID }}';
+    "CalculationId" IN (
+        SELECT
+            "CalculationId" AS calculationid
+        FROM
+            "Calculations"
+        WHERE
+            "Data"::json ->> 'calculationSpecVersion' = '5');
