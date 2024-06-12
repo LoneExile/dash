@@ -1,16 +1,25 @@
 import os
 from enum import Enum
 from time import sleep
+from pkg.aws.s3 import S3
+
+import yaml
+from internal.db.table import DbTable
+from internal.reader import Reader
+
+tb = DbTable()
+s3 = S3()
 
 
 class ModeKeys(Enum):
     INSPECT = 1
     BACKUP_CREATE_TABLE = 2
+    RESORE_TABLE = 3
 
 
 class DbBackupKeys(Enum):
-    BACKUP_TARGET_FILE = "backup.sql"
     BACKUP_TABLE_NAME = "BACKUP_TABLE_NAME"
+    BACKUP_TARGET_FILE = "backup.sql"
     CLEAN_TARGET_FILE = "delete.sql"
 
 
@@ -26,7 +35,7 @@ class AppendixKeys(Enum):
     DB = "db"
 
 
-class ProcessStructureV1:
+class ProcessStructureV1(Reader):
     def __init__(self):
         super().__init__()
 
@@ -41,41 +50,48 @@ class ProcessStructureV1:
         sum=None,
         curr_order_list=None,
     ):
-        console = self.fmt.text()
-        with console.status("[bold green]Working on tasks...") as status:
-            sql_results = sql_results or []
-            if indexer is None:
-                indexer = []
-            sum = sum or [0]
+        sql_results = sql_results or []
+        if indexer is None:
+            indexer = []
+        sum = sum or [0]
 
-            dirs, files = self._separate_dirs_files(structure)
+        dirs, files = self._separate_dirs_files(structure)
+        tb.progress = self.progress
 
-            if curr_order_list is None:
-                curr_order_list = []
+        if curr_order_list is None:
+            curr_order_list = []
 
-            self._process_files(files, base_path, mode, sql_results, indexer, sum)
+        self._process_files(files, base_path, mode, sql_results, indexer, sum)
 
-            for dir_name, sub_structure in self._order_directories(
-                dirs, curr_order_list
-            ).items():
-                if not dir_name.startswith("_"):
-                    current_path = os.path.join(base_path, dir_name)
-                    new_curr_order_list = self._get_order_list(dir_name)
-                    self.process_structure_v1(
-                        sub_structure,
-                        mode,
-                        current_path,
-                        sql_results,
-                        depth + 1,
-                        indexer,
-                        sum,
-                        new_curr_order_list,
-                    )
+        for dir_name, sub_structure in self._order_directories(
+            dirs, curr_order_list
+        ).items():
+            if not dir_name.startswith("_"):
+                current_path = os.path.join(base_path, dir_name)
+                new_curr_order_list = self._get_order_list(dir_name)
+                self.process_structure_v1(
+                    sub_structure,
+                    mode,
+                    current_path,
+                    sql_results,
+                    depth + 1,
+                    indexer,
+                    sum,
+                    new_curr_order_list,
+                )
 
-            if mode == ModeKeys.INSPECT and base_path == "":
-                sleep(0.5)
-                status.stop()
-                self._print_results(sql_results, sum)
+        if mode == ModeKeys.INSPECT and base_path == "":
+            sleep(0.01)
+            # status.stop()
+            self._print_results(sql_results, sum)
+
+        if mode == ModeKeys.BACKUP_CREATE_TABLE and base_path == "":
+            if self.s3_bucket is None:
+                self._create_appendix_file(
+                    self.cfg.Postgres.PgBackupDir + self.dir_name
+                )
+            else:
+                self._create_appendix_file_s3()
 
     def _separate_dirs_files(self, structure):
         dirs = {}
@@ -137,12 +153,11 @@ class ProcessStructureV1:
                         ][AppendixKeys.QUERIES.value]
                         if item[AppendixKeys.TYPE.value] == "table"
                     ]
-                    sql_file_path = os.path.join(
-                        self.cfg.Postgres.PgBackupDir
-                        + self.current_time
-                        + "/"
-                        + self.book
-                        + "/"
+                    upper_upper_dir = os.path.basename(
+                        os.path.dirname(os.path.dirname(base_path))
+                    )
+                    sql_file_path = self._get_sql_file_path(
+                        current_dir, upper_dir, upper_upper_dir
                     )
                     self._handle_sql_file(
                         mode,
@@ -156,6 +171,31 @@ class ProcessStructureV1:
                         sql_results,
                         sum,
                     )
+
+    def _get_sql_file_path(self, current_dir, upper_dir, upper_upper_dir):
+        if self.s3_bucket:
+            return os.path.join(
+                self.dir_name
+                + "/"
+                + upper_upper_dir
+                + "/"
+                + upper_dir
+                + "/"
+                + current_dir
+                + "/"
+            )
+        else:
+            return os.path.join(
+                self.cfg.Postgres.PgBackupDir
+                + self.dir_name
+                + "/"
+                + upper_upper_dir
+                + "/"
+                + upper_dir
+                + "/"
+                + current_dir
+                + "/"
+            )
 
     def _handle_sql_file(
         self,
@@ -192,6 +232,16 @@ class ProcessStructureV1:
                 indexer,
                 table_list,
             )
+        elif mode == ModeKeys.RESORE_TABLE:
+            if current_dir in table_list:
+                print(f"Table: {file_name}")
+                self.pg.run_query_psql(current_path, db)
+            else:
+                temp_table = "temp_backup_" + current_dir
+                print(f"Partial: {file_name} {current_dir}")
+                self.pg.run_query_psql(current_path, db)
+                self.pg.insert_data_from_table(temp_table, current_dir, db)
+                self.pg.drop_table(temp_table, db)
 
     def _inspect_size_sql(
         self, current_path, db, current_dir, upper_dir, sql_results, sum
@@ -209,7 +259,7 @@ class ProcessStructureV1:
             list_table = self.pg.get_data_single_by_id(current_path, index, db)
             if list_table:
                 for table in list_table:
-                    value = self.pg.get_table_size(table)
+                    value = self.pg.get_table_size(table, db)
                     if value:
                         sum[0] += value
                     sql_results.append(
@@ -243,18 +293,57 @@ class ProcessStructureV1:
             self.pg.run_query_template(
                 current_path, db, BACKUP_TABLE_NAME=db_backup_table_name
             )
-            self.bak.backup_table(current_dir, current_dir, db, sql_file_path)
-            print(f"Backup table-p: {current_dir}")
+            if self.s3_bucket:
+                tb.table_name_original = current_dir
+                self.status.update(
+                    "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
+                )
+                tb.backup_table_s3(
+                    db_backup_table_name,
+                    sql_file_path + current_dir + ".sql",
+                    db,
+                    self.s3_bucket,
+                )
+            else:
+                print(f"Backup partial: {current_dir}")
+                self.bak.backup_table(
+                    db_backup_table_name, current_dir, db, sql_file_path
+                )
         except Exception as e:
             self.fmt.print(f"Error: {e}")
         finally:
             self.pg.drop_table(db_backup_table_name, db)
 
     def _backup_specific_table(self, table, db, sql_file_path):
-        print(f"Backup table: {table}")
-        self.bak.backup_table(table, table, db, sql_file_path)
+        if self.s3_bucket:
+            tb.table_name_original = table
+            self.status.update(
+                "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
+            )
+            tb.backup_table_s3(
+                table, sql_file_path + table + ".sql", db, self.s3_bucket
+            )
+        else:
+            print(f"Backup table: {table}")
+            self.bak.backup_table(table, table, db, sql_file_path)
+
         if self.clean:
             self.pg.drop_table(table, db)
+
+    def _create_appendix_file(self, backup_dir):
+        appendix_file_path = os.path.join(backup_dir, "appendix.yaml")
+        with open(appendix_file_path, "w") as file:
+            yaml.dump(self.appendix, file)
+
+    def _create_appendix_file_s3(self):
+        try:
+            s3_client = s3.session.client("s3")
+            s3_key = os.path.join(self.dir_name, "appendix.yaml")
+
+            with open(self.appendix_file_path, "rb") as file:
+                s3_client.upload_fileobj(file, self.s3_bucket, s3_key)
+        except Exception as e:
+            print(f"An error occurred while uploading to S3: {e}")
 
     def _print_results(self, sql_results, sum):
         self.fmt.print_table(sql_results, ["Table Name", "Size", "Chapter", "type"])

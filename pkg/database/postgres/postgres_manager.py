@@ -122,9 +122,11 @@ class PostgresManager(Postgres):
             total_size = result[0]
             return total_size
 
-    def get_table_size(self, table_name):
+    def get_table_size(self, table_name, db_target=None):
         if self.name_escaping:
             table_name = '"' + table_name + '"'
+        if self.conn is None:
+            self.init_connection(db_target)
         with self.conn.cursor() as cur:
             cur.execute(
                 f"""
@@ -177,6 +179,46 @@ class PostgresManager(Postgres):
         with self.conn.cursor() as cur:
             try:
                 cur.execute(query)
+                self.conn.commit()
+            except Exception as e:
+                self.conn.rollback()
+                print(e)
+
+    def run_query_psql(self, sql_file_path, db_target=None):
+        """Run a SQL query file using psql."""
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        psql_path = self.get_psql_path()
+
+        command = (
+            f"{psql_path} --host {self.host} --port {self.port} "
+            f"--username {self.user} --dbname {self.database_name} "
+            f"--file {sql_file_path}"
+        )
+
+        subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+            universal_newlines=True,
+            env={"PGPASSWORD": self.password},
+        )
+
+    def insert_data_from_table(self, source_table, target_table, db_target=None):
+        """Insert data from one table to another."""
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        if self.name_escaping:
+            source_table = '"' + source_table + '"'
+            target_table = '"' + target_table + '"'
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(f"INSERT INTO {target_table} SELECT * FROM {source_table};")
                 self.conn.commit()
             except Exception as e:
                 self.conn.rollback()

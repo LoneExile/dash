@@ -1,8 +1,8 @@
-from rich.console import Console
-from rich.table import Table
-
 import logging
+
+from rich.console import Console
 from rich.logging import RichHandler
+from rich.table import Table
 
 
 class TermFormatter:
