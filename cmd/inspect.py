@@ -56,6 +56,7 @@ def main(
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
+                    v1.appendix = rm.appendix
                     v1.process_structure_v1(dir_struc, ModeKeys.INSPECT)
                 except Exception as e:
                     typer.echo(f"Error: {e}")

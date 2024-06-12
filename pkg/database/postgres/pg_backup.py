@@ -25,12 +25,11 @@ class DbBackup(PostgresManager):
 
             os.makedirs(self.backup_dir, exist_ok=True)
 
-            # command = f"{pg_dump_path} --host {self.host} --port {self.port} --username {self.user} --format plain --data-only --column-inserts --verbose --file {self.backup_dir + backup_file} --table {table_name} {self.database_name}"
             command = (
                 f"{pg_dump_path} --host {self.host} --port {self.port} "
-                f"--username {self.user} --format plain --data-only --column-inserts "
+                f"--username {self.user} --format plain --column-inserts "
                 f"--verbose --file {self.backup_dir + backup_file} --table {table_name} "
-                f"{self.database_name}"
+                f"--create --if-exists {self.database_name} -c"
             )
 
             result = subprocess.run(  # noqa: F841

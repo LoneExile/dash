@@ -4,12 +4,23 @@ from typing import Optional
 import typer
 from internal.db.database import DbDatabase
 from internal.db.table import DbTable
-from internal.reader.reader_manager import ReaderManager
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
+from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
+
+# SpinnerColumn,
+from pkg.aws.s3 import S3
 from pkg.config import cfg
 from pkg.database.postgres.pg_backup import DbBackup
 from pkg.term.formatter.rich import TermFormatter
+from rich.console import Console, Group
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress import (
+    FileSizeColumn,
+    Progress,
+    TextColumn,
+)
 from typing_extensions import Annotated
 
 backupDb = typer.Typer(invoke_without_command=True)
@@ -21,6 +32,7 @@ tb = DbTable()
 rm = ReaderManager()
 utils = Utils()
 v1 = ProcessStructureV1()
+s3 = S3()
 
 
 @backupDb.callback()
@@ -42,6 +54,21 @@ def main(
             help="Clean up the database after backup.",
         ),
     ] = False,
+    bucket: Annotated[
+        str,
+        typer.Option(
+            "--s3-bucket",
+            help="Backup to S3 bucket.",
+        ),
+    ] = None,
+    dir_name: Annotated[
+        str,
+        typer.Option(
+            "--name",
+            "-n",
+            help="Name of the backup.",
+        ),
+    ] = None,
 ):
     """Backup database."""
     if book is not None:
@@ -56,13 +83,35 @@ def main(
         if "apiVersion" not in rm.appendix:
             raise Exception("apiVersion not found in appendix.yaml")
 
+        if bucket is not None:
+            s3.check_bucket_exists(bucket)
+
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
+                    console = Console()
+                    status = console.status("Not started")
+                    progress = Progress(
+                        TextColumn("[progress.description]{task.description}"),
+                        # SpinnerColumn(),
+                        FileSizeColumn(),
+                    )
+
                     v1.clean = clean
                     v1.appendix = rm.appendix
                     v1.book = book
-                    v1.process_structure_v1(dir_struc, ModeKeys.BACKUP_CREATE_TABLE)
+                    v1.s3_bucket = bucket
+                    v1.status = status
+                    v1.progress = progress
+                    v1.dir_name = dir_name
+                    v1.appendix_file_path = appendix_dir[0]
+
+                    with Live(Panel(Group(status, progress))):
+                        status.update("[bold green]Status = Started[/bold green]")
+                        v1.process_structure_v1(dir_struc, ModeKeys.BACKUP_CREATE_TABLE)
+                        status.update("[bold green]Status = Completed[/bold green]")
+                        status.stop()
+
                 except Exception as e:
                     typer.echo(f"Error: {e}")
             case _:
