@@ -38,19 +38,18 @@ class AppendixKeys(Enum):
 class ProcessStructureV1(Reader):
     def __init__(self):
         super().__init__()
+        self.result = []
 
     def process_structure_v1(
         self,
         structure,
         mode=ModeKeys.INSPECT,
         base_path="",
-        sql_results=None,
         depth=0,
         indexer=None,
         sum=None,
         curr_order_list=None,
     ):
-        sql_results = sql_results or []
         if indexer is None:
             indexer = []
         sum = sum or [0]
@@ -61,7 +60,7 @@ class ProcessStructureV1(Reader):
         if curr_order_list is None:
             curr_order_list = []
 
-        self._process_files(files, base_path, mode, sql_results, indexer, sum)
+        self._process_files(files, base_path, mode, indexer, sum)
 
         for dir_name, sub_structure in self._order_directories(
             dirs, curr_order_list
@@ -73,7 +72,6 @@ class ProcessStructureV1(Reader):
                     sub_structure,
                     mode,
                     current_path,
-                    sql_results,
                     depth + 1,
                     indexer,
                     sum,
@@ -82,8 +80,7 @@ class ProcessStructureV1(Reader):
 
         if mode == ModeKeys.INSPECT and base_path == "":
             sleep(0.01)
-            # status.stop()
-            self._print_results(sql_results, sum)
+            self._print_results(self.result, sum)
 
         if mode == ModeKeys.BACKUP_CREATE_TABLE and base_path == "":
             if self.s3_bucket is None:
@@ -124,7 +121,7 @@ class ProcessStructureV1(Reader):
             )
         }
 
-    def _process_files(self, files, base_path, mode, sql_results, indexer, sum):
+    def _process_files(self, files, base_path, mode, indexer, sum):
         desired_order = ["size.sql", "select.sql", "backup.sql", "delete.sql"]
         ordered_files = {k: files[k] for k in desired_order if k in files}
         ordered_files.update({k: v for k, v in files.items() if k not in ordered_files})
@@ -157,7 +154,7 @@ class ProcessStructureV1(Reader):
                         os.path.dirname(os.path.dirname(base_path))
                     )
                     sql_file_path = self._get_sql_file_path(
-                        current_dir, upper_dir, upper_upper_dir
+                        current_dir, upper_dir, upper_upper_dir, mode
                     )
                     self._handle_sql_file(
                         mode,
@@ -168,11 +165,10 @@ class ProcessStructureV1(Reader):
                         table_list,
                         indexer,
                         sql_file_path,
-                        sql_results,
                         sum,
                     )
 
-    def _get_sql_file_path(self, current_dir, upper_dir, upper_upper_dir):
+    def _get_sql_file_path(self, current_dir, upper_dir, upper_upper_dir, mode=None):
         if self.s3_bucket:
             return os.path.join(
                 self.dir_name
@@ -184,9 +180,21 @@ class ProcessStructureV1(Reader):
                 + current_dir
                 + "/"
             )
-        else:
+        elif mode == ModeKeys.RESORE_TABLE or mode == ModeKeys.BACKUP_CREATE_TABLE:
             return os.path.join(
                 self.cfg.Postgres.PgBackupDir
+                + self.dir_name
+                + "/"
+                + upper_upper_dir
+                + "/"
+                + upper_dir
+                + "/"
+                + current_dir
+                + "/"
+            )
+        elif mode == ModeKeys.INSPECT:
+            return os.path.join(
+                self.cfg.Books.Location
                 + self.dir_name
                 + "/"
                 + upper_upper_dir
@@ -207,7 +215,6 @@ class ProcessStructureV1(Reader):
         table_list,
         indexer,
         sql_file_path,
-        sql_results,
         sum,
     ):
         db = self.appendix[AppendixKeys.CHAPTERS.value][upper_dir][
@@ -217,11 +224,9 @@ class ProcessStructureV1(Reader):
             mode == ModeKeys.INSPECT
             and file_name == DbInspectionKeys.INSPECTION_TARGET_FILE.value
         ):
-            self._inspect_size_sql(
-                current_path, db, current_dir, upper_dir, sql_results, sum
-            )
+            self._inspect_size_sql(current_path, db, current_dir, upper_dir, sum)
         elif mode == ModeKeys.INSPECT and current_dir in table_list:
-            self._inspect_table_size(current_path, indexer, db, sql_results, sum)
+            self._inspect_table_size(current_path, indexer, db, sum)
         elif mode == ModeKeys.BACKUP_CREATE_TABLE:
             self._backup_table(
                 file_name,
@@ -243,18 +248,16 @@ class ProcessStructureV1(Reader):
                 self.pg.insert_data_from_table(temp_table, current_dir, db)
                 self.pg.drop_table(temp_table, db)
 
-    def _inspect_size_sql(
-        self, current_path, db, current_dir, upper_dir, sql_results, sum
-    ):
+    def _inspect_size_sql(self, current_path, db, current_dir, upper_dir, sum):
         value = self.pg.get_data_single(current_path, db)
         if value:
             sum[0] += value
             value = self.utils.get_pretty_size(value)
         else:
             value = self.utils.get_pretty_size(0)
-        sql_results.append((current_dir, value, upper_dir, "partial"))
+        self.result.append((current_dir, value, upper_dir, "partial"))
 
-    def _inspect_table_size(self, current_path, indexer, db, sql_results, sum):
+    def _inspect_table_size(self, current_path, indexer, db, sum):
         for index in indexer:
             list_table = self.pg.get_data_single_by_id(current_path, index, db)
             if list_table:
@@ -262,7 +265,7 @@ class ProcessStructureV1(Reader):
                     value = self.pg.get_table_size(table, db)
                     if value:
                         sum[0] += value
-                    sql_results.append(
+                    self.result.append(
                         (table, self.utils.get_pretty_size(value), "", "table")
                     )
 

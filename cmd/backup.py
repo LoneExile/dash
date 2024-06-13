@@ -8,7 +8,6 @@ from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
 
-# SpinnerColumn,
 from pkg.aws.s3 import S3
 from pkg.config import cfg
 from pkg.database.postgres.pg_backup import DbBackup
