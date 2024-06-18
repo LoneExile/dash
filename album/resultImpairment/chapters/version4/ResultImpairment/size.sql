@@ -18,7 +18,7 @@ cal_metrics AS (
         )
 )
 
-SELECT pg_size_pretty(sum(pg_column_size(m.*))) AS filesize_metrics
+SELECT sum(pg_column_size(m.*)) AS filesize_metrics
 FROM
     "ResultImpairment" AS m
 WHERE

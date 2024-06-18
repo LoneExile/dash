@@ -9,19 +9,21 @@ chapters:
         type: partial
       - name: thisIsTable
         type: table
-  # version4:
-  #   db: Ifrs9Impairment
-  #   queries:
-  #     - name: ResultImpairmentIndex
-  #       type: partial
-  #     - name: ResultImpairment
-  #       type: partial
-  #     - name: ResultSegmentImpairment
-  #       type: partial
-  #     - name: CalculationMetrics
-  #       type: partial
-  #     - name: ResultViews
-  #       type: partial
+      - name: CalculationTableRegistry
+        type: partial
+  version4:
+    db: Ifrs9Impairment
+    queries:
+      - name: ResultImpairmentIndex
+        type: partial
+      - name: ResultImpairment
+        type: partial
+      - name: ResultSegmentImpairment
+        type: partial
+      - name: CalculationMetrics
+        type: partial
+      - name: ResultViews
+        type: partial
   # version3:
   #   db: Ifrs9Impairment
   #   queries:
@@ -36,4 +38,15 @@ chapters:
   #       type: partial
   #     - name: CalculationMetrics
   #       type: partial
+
 hook:
+  - name: CalculationLogs
+    type: partial
+  - name: CalculationProps
+    type: partial
+  - name: Calculations
+    type: partial
+  - name: CombinedCalculations
+    type: partial
+  - name: CalculationEvents
+    type: partial

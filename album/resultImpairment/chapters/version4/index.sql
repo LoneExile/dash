@@ -8,4 +8,4 @@ FROM (
     FROM
         "Calculations" AS c) AS cal
 WHERE
-    cal.version = '5';
+    cal.version = '4';

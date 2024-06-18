@@ -1,2 +1,2 @@
-DELETE FROM "CalculationMetrics "
+DELETE FROM "CalculationLogs"
 WHERE "CalculationId " = '{{ ID }}';
