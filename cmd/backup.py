@@ -85,6 +85,14 @@ def main(
         if bucket is not None:
             s3.check_bucket_exists(bucket)
 
+        if (
+            rm.appendix.get("chapters")
+            and rm.appendix["chapters"].get("hook") is not None
+        ):
+            is_hook = True
+        else:
+            is_hook = False
+
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
@@ -104,6 +112,7 @@ def main(
                     v1.progress = progress
                     v1.dir_name = dir_name
                     v1.appendix_file_path = appendix_dir[0]
+                    v1.is_hook = is_hook
 
                     with Live(Panel(Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")

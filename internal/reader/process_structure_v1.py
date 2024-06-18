@@ -28,17 +28,20 @@ class DbInspectionKeys(Enum):
 
 
 class AppendixKeys(Enum):
+    FILE = "appendix.yaml"
     CHAPTERS = "chapters"
     QUERIES = "queries"
     TYPE = "type"
     NAME = "name"
     DB = "db"
+    HOOK = "hook"
 
 
 class ProcessStructureV1(Reader):
     def __init__(self):
         super().__init__()
         self.result = []
+        self.running_chapter = []
 
     def process_structure_v1(
         self,
@@ -48,7 +51,6 @@ class ProcessStructureV1(Reader):
         depth=0,
         indexer=None,
         sum=None,
-        curr_order_list=None,
     ):
         if indexer is None:
             indexer = []
@@ -57,17 +59,17 @@ class ProcessStructureV1(Reader):
         dirs, files = self._separate_dirs_files(structure)
         tb.progress = self.progress
 
-        if curr_order_list is None:
-            curr_order_list = []
-
         self._process_files(files, base_path, mode, indexer, sum)
 
         for dir_name, sub_structure in self._order_directories(
-            dirs, curr_order_list
+            dirs, self.running_chapter
         ).items():
             if not dir_name.startswith("_"):
                 current_path = os.path.join(base_path, dir_name)
                 new_curr_order_list = self._get_order_list(dir_name)
+                if len(new_curr_order_list) > 0:
+                    self.running_chapter = new_curr_order_list
+                    self.current_chapter = os.path.basename(current_path)
                 self.process_structure_v1(
                     sub_structure,
                     mode,
@@ -75,8 +77,9 @@ class ProcessStructureV1(Reader):
                     depth + 1,
                     indexer,
                     sum,
-                    new_curr_order_list,
                 )
+                if self.running_chapter[-1] == dir_name:
+                    self._process_hooks(mode, indexer)
 
         if mode == ModeKeys.INSPECT and base_path == "":
             sleep(0.01)
@@ -239,10 +242,9 @@ class ProcessStructureV1(Reader):
             )
         elif mode == ModeKeys.RESORE_TABLE:
             if current_dir in table_list:
-                print(f"Table: {file_name}")
                 self.pg.run_query_psql(current_path, db)
             else:
-                temp_table = "temp_backup_" + current_dir
+                temp_table = "temp_backup_" + self.current_chapter + "_" + current_dir
                 print(f"Partial: {file_name} {current_dir}")
                 self.pg.run_query_psql(current_path, db)
                 self.pg.insert_data_from_table(temp_table, current_dir, db)
@@ -266,7 +268,12 @@ class ProcessStructureV1(Reader):
                     if value:
                         sum[0] += value
                     self.result.append(
-                        (table, self.utils.get_pretty_size(value), "", "table")
+                        (
+                            table,
+                            self.utils.get_pretty_size(value),
+                            self.current_chapter,
+                            "table",
+                        )
                     )
 
     def _backup_table(
@@ -291,7 +298,8 @@ class ProcessStructureV1(Reader):
             self.pg.run_query(current_path, db)
 
     def _create_backup_table(self, current_path, current_dir, db, sql_file_path):
-        db_backup_table_name = "temp_backup_" + current_dir
+        db_backup_table_name = "temp_backup_" + self.current_chapter + "_" + current_dir
+        print(f"db_backup_table_name: {db_backup_table_name}")
         try:
             self.pg.run_query_template(
                 current_path, db, BACKUP_TABLE_NAME=db_backup_table_name
@@ -334,14 +342,14 @@ class ProcessStructureV1(Reader):
             self.pg.drop_table(table, db)
 
     def _create_appendix_file(self, backup_dir):
-        appendix_file_path = os.path.join(backup_dir, "appendix.yaml")
+        appendix_file_path = os.path.join(backup_dir, AppendixKeys.FILE.value)
         with open(appendix_file_path, "w") as file:
             yaml.dump(self.appendix, file)
 
     def _create_appendix_file_s3(self):
         try:
             s3_client = s3.session.client("s3")
-            s3_key = os.path.join(self.dir_name, "appendix.yaml")
+            s3_key = os.path.join(self.dir_name, AppendixKeys.FILE.value)
 
             with open(self.appendix_file_path, "rb") as file:
                 s3_client.upload_fileobj(file, self.s3_bucket, s3_key)
@@ -354,3 +362,13 @@ class ProcessStructureV1(Reader):
             f"Total Size: [bold green]{self.utils.get_pretty_size(sum[0])}[/bold green]"
         )
         self.fmt.print(f"Total Tables: [bold green]{len(sql_results)}[/bold green]")
+
+    def _process_hooks(self, mode, indexer):
+        print(f"Running Hook: {self.current_chapter}: {mode} : {indexer}")
+
+        # hooks = self.appendix.get(AppendixKeys.HOOK.value, [])
+        # db = (
+        #     self.appendix[AppendixKeys.CHAPTERS.value]
+        #     .get(self.current_chapter, {})
+        #     .get(AppendixKeys.DB.value)
+        # )
