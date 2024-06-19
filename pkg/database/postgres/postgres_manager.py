@@ -244,6 +244,25 @@ class PostgresManager(Postgres):
                 self.conn.rollback()
                 print(e)
 
+    def get_data__by_list_template(self, sql_file_path, db_target=None, **kwargs):
+        """Get data from a SQL query file using a list of IDs."""
+        with open(sql_file_path, "r") as file:
+            sql_query = file.read()
+
+        env = Environment()
+        template = env.from_string(sql_query)
+        rendered_sql_query = template.render(**kwargs)
+
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            cur.execute(rendered_sql_query)
+            rows = cur.fetchall()[0][0]
+            return rows
+            # data_list = [str(item[0]) for item in rows if item[0] is not None]
+            # return data_list
+
     def get_data_list(self, sql_file_path, db_target=None):
         """Get data from a SQL query file."""
         with open(sql_file_path, "r") as file:

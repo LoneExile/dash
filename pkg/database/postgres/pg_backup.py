@@ -28,7 +28,7 @@ class DbBackup(PostgresManager):
             command = (
                 f"{pg_dump_path} --host {self.host} --port {self.port} "
                 f"--username {self.user} --format plain --column-inserts "
-                f"--verbose --file {self.backup_dir + backup_file} --table {table_name} "
+                f"--verbose --file {os.path.join(self.backup_dir, backup_file)} --table {table_name} "
                 f"--create --if-exists {self.database_name} -c"
             )
 
