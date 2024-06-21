@@ -1,2 +1,2 @@
 DELETE FROM "CalculationProps"
-WHERE "CalculationId " = '{{ ID }}';
+WHERE "CalculationId" IN ({{ ID_LIST }})

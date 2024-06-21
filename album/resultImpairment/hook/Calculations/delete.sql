@@ -1,2 +1,2 @@
 DELETE FROM "Calculations"
-WHERE "CalculationId " = '{{ ID }}';
+WHERE "CalculationId" IN ({{ ID_LIST }})
