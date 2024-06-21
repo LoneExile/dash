@@ -45,6 +45,13 @@ class ProcessStructureV1(Reader):
         self.result = []
         self.running_chapter = []
 
+    """
+        This is the tale, of `process_structure_v1.py`,
+        A symphony of code, under the silicon sky.
+        In the dance of the functions, the loops and the lists,
+        In the heart of the machine, the magic exists.
+    """
+
     def process_structure_v1(
         self,
         structure,
@@ -66,7 +73,12 @@ class ProcessStructureV1(Reader):
         for dir_name, sub_structure in self._order_directories(
             dirs, self.running_chapter
         ).items():
-            if not dir_name.startswith("_"):
+            if (
+                not dir_name.startswith("_")
+                and AppendixKeys.HOOK.value not in base_path
+                ## TODO: validate if the appendix is not empty
+                # and self.appendix.get(AppendixKeys.CHAPTERS.value).get(dir_name, {}) != {}
+            ):
                 current_path = os.path.join(base_path, dir_name)
                 new_curr_order_list = self._get_order_list(dir_name)
                 if len(new_curr_order_list) > 0:
@@ -80,7 +92,7 @@ class ProcessStructureV1(Reader):
                     indexer,
                     sum,
                 )
-                if self.running_chapter[-1] == dir_name:
+                if self.running_chapter[-1] == dir_name and self.is_hook:
                     self._process_hooks(mode, indexer, sum)
 
         if mode == ModeKeys.INSPECT and base_path == "":
@@ -235,7 +247,7 @@ class ProcessStructureV1(Reader):
                     + "_"
                     + current_dir
                 )
-                print(f"Partial: {file_name} {current_dir}")
+                print(f"Partial: {current_dir}")
                 self.pg.run_query_psql(current_path, db)
                 self.pg.insert_data_from_table(temp_table, current_dir, db)
                 self.pg.drop_table(temp_table, db)
@@ -307,7 +319,7 @@ class ProcessStructureV1(Reader):
                 )
                 tb.backup_table_s3(
                     db_backup_table_name,
-                    sql_file_path + current_dir + ".sql",
+                    os.path.join(sql_file_path, current_dir + ".sql"),  # TODO: Fix this
                     db,
                     self.s3_bucket,
                 )
@@ -328,7 +340,7 @@ class ProcessStructureV1(Reader):
                 "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
             )
             tb.backup_table_s3(
-                table, sql_file_path + table + ".sql", db, self.s3_bucket
+                table, os.path.join(sql_file_path, table + ".sql"), db, self.s3_bucket
             )
         else:
             print(f"Backup table: {table}")
@@ -377,33 +389,55 @@ class ProcessStructureV1(Reader):
                 id_list += "'" + str(index) + "',"
 
         for hook in hooks:
+            db_backup_table_name = (
+                DbQueryKeys.BACKUP_TABLE_PREFIX.value
+                + self.current_chapter
+                + "_"
+                + AppendixKeys.HOOK.value
+                + "_"
+                + hook.get(AppendixKeys.NAME.value)
+            )
             if (
                 hook.get(AppendixKeys.TYPE.value) == DbQueryKeys.TYPE_PARTIAL.value
                 and mode == ModeKeys.INSPECT
+                # and len(indexer) != 0
             ):
                 inspect_path = os.path.join(
                     hook_base_path,
                     hook.get(AppendixKeys.NAME.value),
                     DbQueryKeys.INSPECTION_TARGET_FILE.value,
                 )
-                value = self.pg.get_data__by_list_template(
-                    inspect_path, db, ID_LIST=id_list
-                )
-                if value:
-                    sum[0] += value
-                    value = self.utils.get_pretty_size(value)
-                else:
-                    value = self.utils.get_pretty_size(0)
-                self.result.append(
-                    (
-                        hook.get(AppendixKeys.NAME.value),
-                        value,
-                        self.current_chapter,
-                        os.path.join(
-                            AppendixKeys.HOOK.value, DbQueryKeys.TYPE_PARTIAL.value
-                        ),
+
+                if len(indexer) != 0:
+                    value = self.pg.get_data__by_list_template(
+                        inspect_path, db, ID_LIST=id_list
                     )
-                )
+                    if value:
+                        sum[0] += value
+                        value = self.utils.get_pretty_size(value)
+                    else:
+                        value = self.utils.get_pretty_size(0)
+                    self.result.append(
+                        (
+                            hook.get(AppendixKeys.NAME.value),
+                            value,
+                            self.current_chapter,
+                            os.path.join(
+                                AppendixKeys.HOOK.value, DbQueryKeys.TYPE_PARTIAL.value
+                            ),
+                        )
+                    )
+                else:
+                    self.result.append(
+                        (
+                            hook.get(AppendixKeys.NAME.value),
+                            self.utils.get_pretty_size(0),
+                            self.current_chapter,
+                            os.path.join(
+                                AppendixKeys.HOOK.value, DbQueryKeys.TYPE_PARTIAL.value
+                            ),
+                        )
+                    )
             elif (
                 hook.get(AppendixKeys.TYPE.value) == DbQueryKeys.TYPE_PARTIAL.value
                 and mode == ModeKeys.BACKUP_CREATE_TABLE
@@ -413,19 +447,17 @@ class ProcessStructureV1(Reader):
                     hook.get(AppendixKeys.NAME.value),
                     DbQueryKeys.BACKUP_TARGET_FILE.value,
                 )
+                delete_path = os.path.join(
+                    hook_base_path,
+                    hook.get(AppendixKeys.NAME.value),
+                    DbQueryKeys.CLEAN_TARGET_FILE.value,
+                )
+
                 target_backup_path = os.path.join(
                     self.cfg.Postgres.PgBackupDir + self.dir_name,
                     AppendixKeys.HOOK.value,
                     self.current_chapter,
                     hook.get(AppendixKeys.NAME.value),
-                )
-                db_backup_table_name = (
-                    DbQueryKeys.BACKUP_TABLE_PREFIX.value
-                    + self.current_chapter
-                    + "_"
-                    + AppendixKeys.HOOK.value
-                    + "_"
-                    + hook.get(AppendixKeys.NAME.value)
                 )
                 try:
                     self.pg.run_query_template(
@@ -441,7 +473,13 @@ class ProcessStructureV1(Reader):
                         )
                         tb.backup_table_s3(
                             db_backup_table_name,
-                            backup_path + hook.get(AppendixKeys.NAME.value) + ".sql",
+                            os.path.join(
+                                self.dir_name,
+                                AppendixKeys.HOOK.value,
+                                self.current_chapter,
+                                hook.get(AppendixKeys.NAME.value),
+                                hook.get(AppendixKeys.NAME.value) + ".sql",
+                            ),
                             db,
                             self.s3_bucket,
                         )
@@ -456,4 +494,23 @@ class ProcessStructureV1(Reader):
                 except Exception as e:
                     self.fmt.print(f"Error: {e}")
                 finally:
+                    if self.clean:
+                        self.pg.run_query_template(delete_path, db, ID_LIST=id_list)
                     self.pg.drop_table(db_backup_table_name, db)
+            elif (
+                hook.get(AppendixKeys.TYPE.value) == DbQueryKeys.TYPE_PARTIAL.value
+                and mode == ModeKeys.RESORE_TABLE
+            ):
+                target_backup_file = os.path.join(
+                    self.dir_name,
+                    AppendixKeys.HOOK.value,
+                    self.current_chapter,
+                    hook.get(AppendixKeys.NAME.value),
+                    hook.get(AppendixKeys.NAME.value) + ".sql",
+                )
+                print(f"Partial(Hook): {hook.get(AppendixKeys.NAME.value)}")
+                self.pg.run_query_psql(target_backup_file, db)
+                self.pg.insert_data_from_table(
+                    db_backup_table_name, hook.get(AppendixKeys.NAME.value), db
+                )
+                self.pg.drop_table(db_backup_table_name, db)
