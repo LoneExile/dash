@@ -1,7 +1,12 @@
-from pkg.aws import Aws
+import re
+
 import boto3
 import botocore.exceptions
-import re
+from internal.db import Db
+from pkg.aws import Aws
+from smart_open import open
+
+db = Db().dbm
 
 
 class S3(Aws):
@@ -26,7 +31,7 @@ class S3(Aws):
             return True
         return False
 
-    def check_bucket_exists(self, bucket_name):
+    def check_bucket_exists(self, bucket_name, is_create=False):
         if not self.is_valid_bucket_name(bucket_name):
             raise ValueError(f"The specified bucket name '{bucket_name}' is not valid.")
         try:
@@ -35,12 +40,47 @@ class S3(Aws):
             return True
         except botocore.exceptions.ClientError as e:
             if e.response["Error"]["Code"] == "404":
-                print(f"Bucket '{bucket_name}' does not exist. Creating it...")
-                self.client.create_bucket(
-                    Bucket=bucket_name,
-                    CreateBucketConfiguration={"LocationConstraint": self.region},
-                )
-                print(f"Bucket '{bucket_name}' created successfully.")
+                if is_create:
+                    print(f"Bucket '{bucket_name}' does not exist. Creating it...")
+                    self.client.create_bucket(
+                        Bucket=bucket_name,
+                        CreateBucketConfiguration={"LocationConstraint": self.region},
+                    )
+                    print(f"Bucket '{bucket_name}' created successfully.")
                 return False
             else:
                 raise e
+
+    def list_bucket_contents(self, bucket, prefix=None):
+        try:
+            kwargs = {"Bucket": bucket}
+            if prefix:
+                kwargs["Prefix"] = prefix
+            response = self.client.list_objects_v2(**kwargs)
+            if "Contents" in response:
+                return [content["Key"] for content in response["Contents"]]
+        except self.client.exceptions.NoSuchBucket:
+            raise ValueError(f"Bucket {bucket} does not exist.")
+
+    def read_file(self, bucket, key):
+        s3_url = f"s3://{bucket}/{key}"
+        with open(s3_url, transport_params={"client": self.client}) as fin:
+            return fin.read()
+
+    def steam_query(self, db_target, s3_url):
+        with open(s3_url, transport_params={"client": self.client}) as fin:
+            buffer = ""
+            for line in fin:
+                if db.conn is None:
+                    db.init_connection(db_target)
+                buffer += line
+                if line.strip().endswith(";"):
+                    if not (
+                        "DROP DATABASE" in buffer.upper()
+                        or "CREATE DATABASE" in buffer.upper()
+                        or "\\connect" in buffer.lower()
+                    ):
+                        with db.conn.cursor() as cur:
+                            cur.execute(buffer)
+                            db.conn.commit()
+                    buffer = ""
