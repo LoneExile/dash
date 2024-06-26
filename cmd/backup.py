@@ -7,14 +7,14 @@ from internal.db.table import DbTable
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
-
 from pkg.aws.s3 import S3
 from pkg.config import cfg
 from pkg.database.postgres.pg_backup import DbBackup
 from pkg.term.formatter.rich import TermFormatter
 from rich.console import Console, Group
 from rich.live import Live
-from rich.panel import Panel
+
+# from rich.panel import Panel
 from rich.progress import (
     FileSizeColumn,
     Progress,
@@ -68,8 +68,23 @@ def main(
             help="Name of the backup.",
         ),
     ] = None,
+    no_confirm: Annotated[
+        bool,
+        typer.Option(
+            "--yes",
+            "--nc",
+            "-y",
+            help="Do not ask for confirmation.",
+        ),
+    ] = False,
 ):
     """Backup database."""
+    if not no_confirm:
+        fmt.print("[bold red]Are you sure you want to proceed?[/bold red]")
+    confirm = no_confirm or input("(y/N): ").lower() in ("y", "yes")
+    if not confirm:
+        raise typer.Abort()
+
     if book is not None:
         path = cfg.Books.Location + book
         is_path = os.path.exists(path)
@@ -83,7 +98,7 @@ def main(
             raise Exception("apiVersion not found in appendix.yaml")
 
         if bucket is not None:
-            s3.check_bucket_exists(bucket)
+            s3.check_bucket_exists(bucket, True)
 
         if rm.appendix.get("chapters") and rm.appendix.get("hook") is not None:
             is_hook = True
@@ -114,7 +129,7 @@ def main(
                     v1.is_hook = is_hook
                     v1.hook_path = hook_path
 
-                    with Live(Panel(Group(status, progress))):
+                    with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
                         v1.process_structure_v1(dir_struc, ModeKeys.BACKUP_CREATE_TABLE)
                         status.update("[bold green]Status = Completed[/bold green]")

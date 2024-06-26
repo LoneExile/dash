@@ -184,6 +184,9 @@ class PostgresManager(Postgres):
                 self.conn.rollback()
                 print(e)
 
+    def get_connection_string(self):
+        return f"postgresql://{self.user}:{self.password}@{self.host}:{self.port}/{self.database_name}"
+
     def run_query_psql(self, sql_file_path, db_target=None):
         """Run a SQL query file using psql."""
         if self.conn is None:

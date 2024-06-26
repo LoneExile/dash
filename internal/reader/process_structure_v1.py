@@ -45,12 +45,77 @@ class ProcessStructureV1(Reader):
         self.result = []
         self.running_chapter = []
 
-    """
-        This is the tale, of `process_structure_v1.py`,
-        A symphony of code, under the silicon sky.
-        In the dance of the functions, the loops and the lists,
-        In the heart of the machine, the magic exists.
-    """
+    def restore_s3_v1(self, s3_contents):
+        chapters = list(self.appendix.get("chapters", {}).keys())
+        for chapter in chapters:
+            db = self.appendix[AppendixKeys.CHAPTERS.value][chapter][
+                AppendixKeys.DB.value
+            ]
+            if self.is_hook:
+                hook = self.appendix[AppendixKeys.HOOK.value]
+                hook_steps = [item["name"] for item in hook]
+                for step in hook_steps:
+                    hook_path = os.path.join(
+                        self.dir_name, AppendixKeys.HOOK.value, chapter, step
+                    )
+                    filtered_list = list(filter(lambda x: hook_path in x, s3_contents))
+                    for item in filtered_list:
+                        if item.endswith(".sql"):
+                            prefix = "s3://" + os.path.join(self.s3_bucket, item)
+                            print(f"Prefix hook: {prefix}")
+                            temp_table = (
+                                DbQueryKeys.BACKUP_TABLE_PREFIX.value
+                                + chapter
+                                + "_"
+                                + AppendixKeys.HOOK.value
+                                + "_"
+                                + step
+                            )
+                            s3.steam_query(db, prefix)
+                            self.pg.insert_data_from_table(temp_table, step, db)
+                            self.pg.drop_table(temp_table, db)
+
+            # print(f"DB: {db}")
+            step = self.appendix[AppendixKeys.CHAPTERS.value][chapter][
+                AppendixKeys.QUERIES.value
+            ]
+            # self.fmt.print(f"Step: {step}")
+            for item in step:
+                if item[AppendixKeys.TYPE.value] == DbQueryKeys.TYPE_TABLE.value:
+                    prefix = os.path.join(
+                        self.dir_name,
+                        AppendixKeys.CHAPTERS.value,
+                        chapter,
+                        item[AppendixKeys.NAME.value],
+                    )
+                    filtered_list = list(filter(lambda x: prefix in x, s3_contents))
+                    for item in filtered_list:
+                        if item.endswith(".sql"):
+                            prefix = "s3://" + os.path.join(self.s3_bucket, item)
+                            print(f"Prefix table: {prefix}")
+                            s3.steam_query(db, prefix)
+                elif item[AppendixKeys.TYPE.value] == DbQueryKeys.TYPE_PARTIAL.value:
+                    prefix = "s3://" + os.path.join(
+                        self.s3_bucket,
+                        self.dir_name,
+                        AppendixKeys.CHAPTERS.value,
+                        chapter,
+                        item[AppendixKeys.NAME.value],
+                        item[AppendixKeys.NAME.value] + ".sql",
+                    )
+                    print(f"Prefix: {prefix}")
+
+                    temp_table = (
+                        DbQueryKeys.BACKUP_TABLE_PREFIX.value
+                        + chapter
+                        + "_"
+                        + item[AppendixKeys.NAME.value]
+                    )
+                    s3.steam_query(db, prefix)
+                    self.pg.insert_data_from_table(
+                        temp_table, item[AppendixKeys.NAME.value], db
+                    )
+                    self.pg.drop_table(temp_table, db)
 
     def process_structure_v1(
         self,
@@ -68,6 +133,10 @@ class ProcessStructureV1(Reader):
         dirs, files = self._separate_dirs_files(structure)
         tb.progress = self.progress
 
+        # if self.current_chapter != "":
+        #     self.step = self.appendix[AppendixKeys.CHAPTERS.value][self.current_chapter][
+        #         AppendixKeys.QUERIES.value
+        #     ]
         self._process_files(files, base_path, mode, indexer, sum)
 
         for dir_name, sub_structure in self._order_directories(
@@ -159,31 +228,35 @@ class ProcessStructureV1(Reader):
                 curr_order = self.appendix[AppendixKeys.CHAPTERS.value].get(
                     upper_dir, []
                 )
+
                 if curr_order:
-                    table_list = [
-                        item[AppendixKeys.NAME.value]
-                        for item in self.appendix[AppendixKeys.CHAPTERS.value][
-                            upper_dir
-                        ][AppendixKeys.QUERIES.value]
-                        if item[AppendixKeys.TYPE.value] == DbQueryKeys.TYPE_TABLE.value
-                    ]
-                    upper_upper_dir = os.path.basename(
-                        os.path.dirname(os.path.dirname(base_path))
-                    )
-                    sql_file_path = self._get_sql_file_path(
-                        current_dir, upper_dir, upper_upper_dir, mode
-                    )
-                    self._handle_sql_file(
-                        mode,
-                        file_name,
-                        current_path,
-                        current_dir,
-                        upper_dir,
-                        table_list,
-                        indexer,
-                        sql_file_path,
-                        sum,
-                    )
+                    query_names = [query["name"] for query in curr_order["queries"]]
+                    if current_dir in query_names:
+                        table_list = [
+                            item[AppendixKeys.NAME.value]
+                            for item in self.appendix[AppendixKeys.CHAPTERS.value][
+                                upper_dir
+                            ][AppendixKeys.QUERIES.value]
+                            if item[AppendixKeys.TYPE.value]
+                            == DbQueryKeys.TYPE_TABLE.value
+                        ]
+                        upper_upper_dir = os.path.basename(
+                            os.path.dirname(os.path.dirname(base_path))
+                        )
+                        sql_file_path = self._get_sql_file_path(
+                            current_dir, upper_dir, upper_upper_dir, mode
+                        )
+                        self._handle_sql_file(
+                            mode,
+                            file_name,
+                            current_path,
+                            current_dir,
+                            upper_dir,
+                            table_list,
+                            indexer,
+                            sql_file_path,
+                            sum,
+                        )
 
     def _get_sql_file_path(self, current_dir, upper_dir, upper_upper_dir, mode=None):
         if self.s3_bucket:
