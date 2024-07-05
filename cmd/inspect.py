@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 import typer
 from internal.db.database import DbDatabase
@@ -49,6 +50,20 @@ def main(
             help="Backup to S3 bucket.",
         ),
     ] = None,
+    start_date: Annotated[
+        str,
+        typer.Option(
+            "--start-date",
+            help="Start date for backup.",
+        ),
+    ] = None,
+    end_date: Annotated[
+        str,
+        typer.Option(
+            "--end-date",
+            help="End date for backup.",
+        ),
+    ] = None,
     # dir_name: Annotated[
     #     str,
     #     typer.Option(
@@ -80,6 +95,11 @@ def main(
             is_hook = False
             hook_path = None
 
+        if start_date is not None:
+            is_date = True
+        else:
+            is_date = False
+
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
@@ -96,6 +116,14 @@ def main(
                     if book is not None:
                         v1.dir_name = book
                     v1.book = book
+                    v1.start_date = start_date
+                    v1.end_date = end_date
+                    v1.is_date = is_date
+                    v1.start_date = start_date
+                    if end_date is not None:
+                        v1.end_date = end_date
+                    else:
+                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d")  # %H:%M:%S
                     with Live((Group(progress))):
                         v1.process_structure_v1(dir_struc, ModeKeys.INSPECT)
                 except Exception as e:
