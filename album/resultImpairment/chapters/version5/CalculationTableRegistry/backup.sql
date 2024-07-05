@@ -4,10 +4,4 @@ SELECT
 FROM
     "CalculationTableRegistry"
 WHERE
-    "CalculationId" IN (
-        SELECT
-            "CalculationId" AS calculationid
-        FROM
-            "Calculations"
-        WHERE
-            "Data"::json ->> 'calculationSpecVersion' = '5');
+    "CalculationId" IN ({{ ID_LIST }})

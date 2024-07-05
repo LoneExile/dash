@@ -1,17 +1,9 @@
-WITH cal AS (
-    SELECT c."CalculationId" AS calculationid
-    FROM
-        "Calculations" AS c
-    WHERE
-        c."Data"::json ->> 'calculationSpecVersion' = '5'
-),
-
-calculation_table_registry AS (
+WITH calculation_table_registry AS (
     SELECT "CalculationId" AS calculationid
     FROM
         "CalculationTableRegistry"
     WHERE
-        "CalculationId" IN (SELECT calculationid FROM cal)
+        "CalculationId" IN ({{ ID_LIST }})
 )
 
 SELECT SUM(PG_COLUMN_SIZE(ctr.*)) AS filesize

@@ -1,8 +1,2 @@
 DELETE FROM "ResultViews"
-WHERE "CalculationId" IN (
-        SELECT
-            "CalculationId" AS calculationid
-        FROM
-            "Calculations"
-        WHERE
-            "Data"::json ->> 'calculationSpecVersion' = '5');
+WHERE "CalculationId" IN ({{ ID_LIST }})
