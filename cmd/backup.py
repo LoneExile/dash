@@ -1,16 +1,8 @@
 import os
+from datetime import datetime
 from typing import Optional
 
 import typer
-from internal.db.database import DbDatabase
-from internal.db.table import DbTable
-from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
-from internal.reader.reader_manager import ReaderManager
-from internal.utils import Utils
-from pkg.aws.s3 import S3
-from pkg.config import cfg
-from pkg.database.postgres.pg_backup import DbBackup
-from pkg.term.formatter.rich import TermFormatter
 from rich.console import Console, Group
 from rich.live import Live
 
@@ -21,6 +13,16 @@ from rich.progress import (
     TextColumn,
 )
 from typing_extensions import Annotated
+
+from internal.db.database import DbDatabase
+from internal.db.table import DbTable
+from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
+from internal.reader.reader_manager import ReaderManager
+from internal.utils import Utils
+from pkg.aws.s3 import S3
+from pkg.config import cfg
+from pkg.database.postgres.pg_backup import DbBackup
+from pkg.term.formatter.rich import TermFormatter
 
 backupDb = typer.Typer(invoke_without_command=True)
 bak = DbBackup()
@@ -77,6 +79,20 @@ def main(
             help="Do not ask for confirmation.",
         ),
     ] = False,
+    start_date: Annotated[
+        str,
+        typer.Option(
+            "--start-date",
+            help="Start date for backup.",
+        ),
+    ] = None,
+    end_date: Annotated[
+        str,
+        typer.Option(
+            "--end-date",
+            help="End date for backup.",
+        ),
+    ] = None,
 ):
     """Backup database."""
     if not no_confirm:
@@ -107,6 +123,11 @@ def main(
             is_hook = False
             hook_path = None
 
+        if start_date is not None:
+            is_date = True
+        else:
+            is_date = False
+
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
@@ -128,6 +149,12 @@ def main(
                     v1.appendix_file_path = appendix_dir[0]
                     v1.is_hook = is_hook
                     v1.hook_path = hook_path
+                    v1.is_date = is_date
+                    v1.start_date = start_date
+                    if end_date is not None:
+                        v1.end_date = end_date
+                    else:
+                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d")  # %H:%M:%S
 
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
