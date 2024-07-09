@@ -1,0 +1,145 @@
+apiVersion: v1
+chapters:
+  stage:
+    db: KBC-Stage
+    queries:
+    - name: ACC0
+      type: partial
+    - name: ACO0
+      type: partial
+    - name: AMO0
+      type: partial
+    - name: AMO0_KEYS
+      type: partial
+    - name: ASS0
+      type: partial
+    - name: CRA0
+      type: partial
+    - name: CRF0
+      type: partial
+    - name: CRF1
+      type: partial
+    - name: CRF2
+      type: partial
+    - name: CRF3
+      type: partial
+    - name: DDA0
+      type: partial
+    - name: DDA6
+      type: partial
+    - name: DDO0
+      type: partial
+    - name: EXR0
+      type: partial
+    - name: FBR0
+      type: partial
+    - name: FBR3
+      type: partial
+    - name: IMR0
+      type: partial
+    - name: LOA0
+      type: partial
+    - name: LOA3
+      type: partial
+    - name: LOA4
+      type: partial
+    - name: LOA8
+      type: partial
+    - name: LPO
+      type: partial
+    - name: LPO_KEYS
+      type: partial
+    - name: MEI0
+      type: partial
+    - name: PGC0
+      type: partial
+    - name: PGC3
+      type: partial
+    - name: PRA1
+      type: partial
+    - name: REP0
+      type: partial
+    - name: REP2
+      type: partial
+    - name: REP4
+      type: partial
+    - name: SEC00
+      type: partial
+    - name: SUR0
+      type: partial
+
+  rain:
+    db: KBC-Rainbow
+    queries:
+    - name: BOND_POSITIONS
+      type: partial
+    - name: BOND_POSITIONS-V1.3.0-INSTALL-BACKUP
+      type: partial
+    - name: BOND_POSITION_COLLATERALS
+      type: partial
+    # - name: CALIBRATED_PD_MODELS
+    #   type: partial
+    # - name: COMPANIES
+    #   type: partial
+    - name: COUNTERPARTIES
+      type: partial
+    - name: CREDIT_CASHFLOWS
+      type: partial
+    - name: CREDIT_COLLATERALS
+      type: partial
+    - name: CREDIT_COUNTERPARTIES
+      type: partial
+    - name: CREDIT_COUNTERPARTIES-V1.25.0-INSTALL-BACKUP
+      type: partial
+    - name: CREDIT_DRAWDOWNS
+      type: partial
+    - name: CREDIT_DRAWDOWNS-V1.3.0-INSTALL-BACKUP
+      type: partial
+    - name: CREDIT_FACILITIES
+      type: partial
+    - name: CREDIT_FACILITIES-V1.15.0-INSTALL-BACKUP
+      type: partial
+    - name: CREDIT_FACILITIES-V1.23.0-INSTALL-BACKUP
+      type: partial
+    - name: CREDIT_FACILITIES-V1.26.0-INSTALL-BACKUP
+      type: partial
+    - name: CREDIT_FACILITIES-V1.3.0-INSTALL-BACKUP
+      type: partial
+    - name: CREDIT_FACILITIES-V1.6.0-INSTALL-BACKUP
+      type: partial
+    - name: CURRENCY_RATES
+      type: partial
+    - name: ECONOMIC_FACTORS
+      type: partial
+    - name: FB_CONTAGIONS
+      type: partial
+    - name: FB_CONTAGION_LINKS
+      type: partial
+    - name: FB_CONTAGION_STATS
+      type: partial
+    # - name: FX_DATA
+    #   type: partial
+    - name: INDIVIDUAL_IMPAIRMENTS
+      type: partial
+    - name: INDIVIDUAL_IMPAIRMENTS-V1.14.0-INSTALL-BACKUP
+      type: partial
+    - name: INDIVIDUAL_IMPAIRMENT_CONTAGIONS
+      type: partial
+    - name: INDIVIDUAL_IMPAIRMENT_CONTAGION_LINKS
+      type: partial
+    - name: MARKET_LOANS
+      type: partial
+    - name: MARKET_LOANS-V1.15.0-INSTALL-BACKUP
+      type: partial
+    - name: MARKET_LOANS-V1.3.0-INSTALL-BACKUP
+      type: partial
+    - name: MARKET_LOAN_COLLATERALS
+      type: partial
+    - name: PARAM_MAPPING
+      type: partial
+    - name: REVERSE_REPOS
+      type: partial
+    - name: REVERSE_REPOS-V1.15.0-INSTALL-BACKUP
+      type: partial
+    - name: REVERSE_REPOS-V1.3.0-INSTALL-BACKUP
+      type: partial

@@ -1,0 +1,7 @@
+SELECT
+    a."BNS_DT"
+FROM
+    "RAIN"."BOND_POSITIONS" AS a
+WHERE
+    a."BNS_DT" = '2024-05-31'
+LIMIT 1

@@ -1,0 +1,7 @@
+SELECT
+    a."BNS_DT"
+FROM
+    "GFDL"."ACC0" AS a
+WHERE
+    a."BNS_DT" = '2024-05-31'
+LIMIT 1

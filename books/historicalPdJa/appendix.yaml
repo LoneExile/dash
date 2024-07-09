@@ -1,0 +1,18 @@
+apiVersion: v1
+chapters:
+  apiVersion2:
+    db: HistoricalPd
+    queries:
+      - name: tableTypeJa
+        type: table
+      - name: CalculationTableRegistry
+        type: partial
+hook:
+  - name: CalculationLogs
+    type: partial
+  - name: CalculationProps
+    type: partial
+  - name: ResultProcessed
+    type: partial
+  - name: Calculations
+    type: partial
