@@ -154,7 +154,7 @@ def main(
                     if end_date is not None:
                         v1.end_date = end_date
                     else:
-                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d")  # %H:%M:%S
+                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")

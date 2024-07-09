@@ -8,7 +8,7 @@ from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
 from pkg.config import cfg
-from rich.console import Group
+from rich.console import Console, Group
 from rich.live import Live
 from rich.progress import (
     FileSizeColumn,
@@ -103,12 +103,15 @@ def main(
         match rm.appendix["apiVersion"]:
             case "v1":
                 try:
+                    console = Console()
+                    status = console.status("Not started")
                     progress = Progress(
                         TextColumn("[progress.description]{task.description}"),
                         FileSizeColumn(),
                     )
                     v1.appendix = rm.appendix
                     v1.progress = progress
+                    v1.status = status
                     v1.appendix_file_path = appendix_dir[0]
                     v1.s3_bucket = bucket
                     v1.is_hook = is_hook
@@ -123,9 +126,12 @@ def main(
                     if end_date is not None:
                         v1.end_date = end_date
                     else:
-                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d")  # %H:%M:%S
-                    with Live((Group(progress))):
+                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    with Live((Group(status, progress))):
+                        status.update("[bold green]Status = Started[/bold green]")
                         v1.process_structure_v1(dir_struc, ModeKeys.INSPECT)
+                        status.update("[bold green]Status = Completed[/bold green]")
+                        status.stop()
                 except Exception as e:
                     typer.echo(f"Error: {e}")
             case _:

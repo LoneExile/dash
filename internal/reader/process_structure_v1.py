@@ -165,6 +165,9 @@ class ProcessStructureV1(Reader):
                 if self.running_chapter[-1] == dir_name and self.is_hook:
                     self._process_hooks(mode, indexer, sum)
 
+                if self.running_chapter[-1] == dir_name:
+                    self.pg.close_connection()
+
         if mode == ModeKeys.INSPECT and base_path == "":
             sleep(0.01)
             self._print_results(self.result, sum)
@@ -229,7 +232,7 @@ class ProcessStructureV1(Reader):
                         self.appendix[AppendixKeys.CHAPTERS.value][current_dir][
                             AppendixKeys.DB.value
                         ],
-                        IS_WHERE_CLAUSE_DATE=is_where_clause_date,
+                        IS_WHERE_DATE=is_where_clause_date,
                         START_DATE=self.start_date,
                         END_DATE=self.end_date,
                     )
@@ -337,10 +340,10 @@ class ProcessStructureV1(Reader):
 
     def _inspect_size_sql(self, current_path, db, current_dir, upper_dir, sum, indexer):
         id_list = self._id_list(indexer)
-        # value = self.pg.get_data_single(current_path, db)
+        self.status.update(f"[bold green] Getting {current_dir}[/bold green]\n")
         if len(indexer) != 0:
             value = self.pg.get_data__by_list_template(
-                current_path, db, ID_LIST=id_list
+                current_path, db, ID_LIST=id_list, CURRENT_DIR=current_dir
             )
             if value:
                 sum[0] += value
