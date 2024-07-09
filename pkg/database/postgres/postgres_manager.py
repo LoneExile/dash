@@ -275,8 +275,7 @@ class PostgresManager(Postgres):
         template = env.from_string(query)
         rendered_sql_query = template.render(**kwargs)
 
-        if self.conn is None:
-            self.init_connection(db_target)
+        self.init_connection(db_target)
 
         with self.conn.cursor() as cur:
             cur.execute(rendered_sql_query)
