@@ -62,7 +62,7 @@ class ProcessStructureV1(Reader):
                     )
                     filtered_list = list(filter(lambda x: hook_path in x, s3_contents))
                     for item in filtered_list:
-                        if item.endswith(".sql"):
+                        if item.endswith(".sql") or item.endswith(".dump"):
                             prefix = "s3://" + os.path.join(self.s3_bucket, item)
                             print(f"Prefix hook: {prefix}")
                             temp_table = (
@@ -73,15 +73,13 @@ class ProcessStructureV1(Reader):
                                 + "_"
                                 + step
                             )
-                            s3.steam_query(db, prefix)
+                            tb.restore_table_from_s3(prefix, db)
                             self.pg.insert_data_from_table(temp_table, step, db)
                             self.pg.drop_table(temp_table, db)
 
-            # print(f"DB: {db}")
             step = self.appendix[AppendixKeys.CHAPTERS.value][chapter][
                 AppendixKeys.QUERIES.value
             ]
-            # self.fmt.print(f"Step: {step}")
             for item in step:
                 if item[AppendixKeys.TYPE.value] == DbQueryKeys.TYPE_TABLE.value:
                     prefix = os.path.join(
@@ -92,10 +90,10 @@ class ProcessStructureV1(Reader):
                     )
                     filtered_list = list(filter(lambda x: prefix in x, s3_contents))
                     for item in filtered_list:
-                        if item.endswith(".sql"):
+                        if item.endswith(".sql") or item.endswith(".dump"):
                             prefix = "s3://" + os.path.join(self.s3_bucket, item)
                             print(f"Prefix table: {prefix}")
-                            s3.steam_query(db, prefix)
+                            tb.restore_table_from_s3(prefix, db)
                 elif item[AppendixKeys.TYPE.value] == DbQueryKeys.TYPE_PARTIAL.value:
                     prefix = "s3://" + os.path.join(
                         self.s3_bucket,
@@ -103,7 +101,7 @@ class ProcessStructureV1(Reader):
                         AppendixKeys.CHAPTERS.value,
                         chapter,
                         item[AppendixKeys.NAME.value],
-                        item[AppendixKeys.NAME.value] + ".sql",
+                        item[AppendixKeys.NAME.value] + ".dump",
                     )
                     print(f"Prefix: {prefix}")
 
@@ -113,7 +111,7 @@ class ProcessStructureV1(Reader):
                         + "_"
                         + item[AppendixKeys.NAME.value]
                     )
-                    s3.steam_query(db, prefix)
+                    tb.restore_table_from_s3(prefix, db)
                     self.pg.insert_data_from_table(
                         temp_table, item[AppendixKeys.NAME.value], db
                     )
@@ -166,7 +164,10 @@ class ProcessStructureV1(Reader):
                 if self.running_chapter[-1] == dir_name and self.is_hook:
                     self._process_hooks(mode, indexer, sum)
 
-                if self.running_chapter[-1] == dir_name:
+                if (
+                    self.running_chapter[-1] == dir_name
+                    and mode is not ModeKeys.RESORE_TABLE
+                ):
                     self.pg.close_connection()
 
         if mode == ModeKeys.INSPECT and base_path == "":
@@ -228,7 +229,9 @@ class ProcessStructureV1(Reader):
             current_dir = os.path.basename(base_path)
             upper_dir = os.path.basename(os.path.dirname(base_path))
 
-            if file_name.endswith(".sql") and not file_name.startswith("_"):
+            if (
+                file_name.endswith(".sql") or file_name.endswith(".dump")
+            ) and not file_name.startswith("_"):
                 if self.is_date:
                     is_where_clause_date = ""
                 else:
@@ -335,7 +338,8 @@ class ProcessStructureV1(Reader):
             )
         elif mode == ModeKeys.RESORE_TABLE:
             if current_dir in table_list:
-                self.pg.run_query_psql(current_path, db)
+                # self.pg.run_query_psql(current_path, db)
+                self.pg.run_query_pg_restore(current_path, db)
             else:
                 temp_table = (
                     DbQueryKeys.BACKUP_TABLE_PREFIX.value
@@ -344,7 +348,8 @@ class ProcessStructureV1(Reader):
                     + current_dir
                 )
                 print(f"Partial: {current_dir}")
-                self.pg.run_query_psql(current_path, db)
+                # self.pg.run_query_psql(current_path, db)
+                self.pg.run_query_pg_restore(current_path, db)
                 self.pg.insert_data_from_table(temp_table, current_dir, db)
                 self.pg.drop_table(temp_table, db)
 
@@ -433,7 +438,7 @@ class ProcessStructureV1(Reader):
                     tb.backup_table_s3(
                         db_backup_table_name,
                         os.path.join(
-                            sql_file_path, current_dir + ".sql"
+                            sql_file_path, current_dir + ".dump"
                         ),  # TODO: Fix this
                         db,
                         self.s3_bucket,
@@ -455,7 +460,7 @@ class ProcessStructureV1(Reader):
                 "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
             )
             tb.backup_table_s3(
-                table, os.path.join(sql_file_path, table + ".sql"), db, self.s3_bucket
+                table, os.path.join(sql_file_path, table + ".dump"), db, self.s3_bucket
             )
         else:
             print(f"Backup table: {table}")
@@ -600,7 +605,7 @@ class ProcessStructureV1(Reader):
                                     AppendixKeys.HOOK.value,
                                     self.current_chapter,
                                     hook.get(AppendixKeys.NAME.value),
-                                    hook.get(AppendixKeys.NAME.value) + ".sql",
+                                    hook.get(AppendixKeys.NAME.value) + ".dump",
                                 ),
                                 db,
                                 self.s3_bucket,
@@ -630,10 +635,12 @@ class ProcessStructureV1(Reader):
                     AppendixKeys.HOOK.value,
                     self.current_chapter,
                     hook.get(AppendixKeys.NAME.value),
-                    hook.get(AppendixKeys.NAME.value) + ".sql",
+                    hook.get(AppendixKeys.NAME.value) + ".dump",
                 )
                 print(f"Partial(Hook): {hook.get(AppendixKeys.NAME.value)}")
-                self.pg.run_query_psql(target_backup_file, db)
+
+                # self.pg.run_query_psql(target_backup_file, db)
+                self.pg.run_query_pg_restore(target_backup_file, db)
                 self.pg.insert_data_from_table(
                     db_backup_table_name, hook.get(AppendixKeys.NAME.value), db
                 )
