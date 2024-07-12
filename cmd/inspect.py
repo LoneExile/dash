@@ -35,6 +35,14 @@ def main(
             help="The database to inspect table.",
         ),
     ] = None,
+    schema: Annotated[
+        str,
+        typer.Option(
+            "--schema",
+            "-s",
+            help="The schema to inspect table.",
+        ),
+    ] = "public",
     book: Annotated[
         str,
         typer.Option(
@@ -63,7 +71,7 @@ def main(
             "--end-date",
             help="End date for backup.",
         ),
-    ] = None,
+    ] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
     # dir_name: Annotated[
     #     str,
     #     typer.Option(
@@ -75,7 +83,7 @@ def main(
 ):
     """Inspect the database."""
     if target is not None:
-        tb.list_tables(target)
+        tb.list_tables(target, schema)
     elif book is not None:
         path = cfg.Books.Location + book
         is_path = os.path.exists(path)
@@ -123,10 +131,7 @@ def main(
                     v1.end_date = end_date
                     v1.is_date = is_date
                     v1.start_date = start_date
-                    if end_date is not None:
-                        v1.end_date = end_date
-                    else:
-                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    v1.end_date = end_date
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
                         v1.process_structure_v1(dir_struc, ModeKeys.INSPECT)

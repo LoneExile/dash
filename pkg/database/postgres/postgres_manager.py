@@ -4,17 +4,21 @@ from typing import List, Tuple
 import psycopg
 from jinja2 import Environment
 from pkg.database.postgres import Postgres
+import os
 
 
 class PostgresManager(Postgres):
     def __init__(self):
         super().__init__()
 
-    def init_connection(self, db_target=None):
+    def init_connection(self, db_target=None, schema="public"):
         """Initialize a new database connection using the DSN provided."""
         if db_target:
             self.database_name = db_target
-        self.dsn = f"dbname={self.database_name} user={self.user} password={self.password} host={self.host} port={self.port}"
+        self.dsn = (
+            f"dbname={self.database_name} user={self.user} password={self.password} "
+            f"host={self.host} port={self.port} options='-c search_path={schema}'"
+        )
         self.conn = psycopg.connect(self.dsn)
 
     def close_connection(self):
@@ -61,28 +65,57 @@ class PostgresManager(Postgres):
             columns = [desc[0] for desc in cur.description] if cur.description else []
             return columns, rows
 
-    def list_tables(self, db_target):
+    def list_tables(self, db_target, schema="public"):
         """List all tables in a given database."""
         if self.conn is None:
-            self.init_connection(db_target)
+            self.init_connection(db_target, schema)
 
-        with self.conn.cursor() as cur:
-            cur.execute(
-                f"""
-                SELECT table_name,
-                pg_size_pretty(pg_total_relation_size(quote_ident(table_name)))
-                FROM information_schema.tables
-                WHERE table_schema = 'public'
-                AND table_catalog = '{db_target}';
-                """
-            )
+        query = f"""
+            SELECT table_name,
+                   pg_size_pretty(pg_total_relation_size(quote_ident(table_name)))
+            FROM information_schema.tables
+            WHERE table_schema = '{schema}'
+              AND table_catalog = '{db_target}';
+        """
+        # print(query)
 
-            return cur.fetchall()
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query)
+                return cur.fetchall()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            os._exit(1)
+            # return []
 
-    def sum_table_sizes(self, database_name):
+    def verify_table_existence(self, table_name, schema="public"):
+        """Check if a table exists in the specified schema."""
+        if self.conn is None:
+            self.init_connection(self.database_name, schema)
+
+        query = f"""
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = '{schema}'
+              AND table_name = '{table_name}';
+        """
+
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(query)
+                result = cur.fetchone()
+                if result:
+                    print(f"Table '{table_name}' exists in schema '{schema}'.")
+                else:
+                    print(f"Table '{table_name}' does not exist in schema '{schema}'.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+    def sum_table_sizes(self, database_name, schema="public"):
         """Sum the sizes of all tables in a given database."""
         if self.conn is None:
             self.init_connection()
+        print(f"Database test: {database_name}")
 
         with self.conn.cursor() as cur:
             cur.execute(
@@ -94,7 +127,7 @@ class PostgresManager(Postgres):
                     FROM
                     information_schema.tables
                     WHERE
-                    table_schema = 'public'
+                    table_schema = '{schema}'
                     AND table_catalog = '{database_name}'
                     )
                 SELECT

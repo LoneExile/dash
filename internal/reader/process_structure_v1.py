@@ -24,6 +24,7 @@ class DbQueryKeys(Enum):
     BACKUP_TARGET_FILE = "backup.sql"
     CLEAN_TARGET_FILE = "delete.sql"
     INSPECTION_TARGET_FILE = "size.sql"
+    SELECT_TARGET_FILE = "select.sql"
     INDEX_TARGET_FILE = "index.sql"
     TYPE_TABLE = "table"
     TYPE_PARTIAL = "partial"
@@ -46,14 +47,14 @@ class ProcessStructureV1(Reader):
         self.running_chapter = []
 
     def restore_s3_v1(self, s3_contents):
-        chapters = list(self.appendix.get("chapters", {}).keys())
+        chapters = list(self.appendix.get(AppendixKeys.CHAPTERS.value, {}).keys())
         for chapter in chapters:
             db = self.appendix[AppendixKeys.CHAPTERS.value][chapter][
                 AppendixKeys.DB.value
             ]
             if self.is_hook:
                 hook = self.appendix[AppendixKeys.HOOK.value]
-                hook_steps = [item["name"] for item in hook]
+                hook_steps = [item[AppendixKeys.NAME.value] for item in hook]
                 hook_steps.reverse()
                 for step in hook_steps:
                     hook_path = os.path.join(
@@ -212,7 +213,13 @@ class ProcessStructureV1(Reader):
         }
 
     def _process_files(self, files, base_path, mode, indexer, sum):
-        desired_order = ["size.sql", "select.sql", "backup.sql", "delete.sql"]
+        # desired_order = ["size.sql", "select.sql", "backup.sql", "delete.sql"]
+        desired_order = [
+            DbQueryKeys.INSPECTION_TARGET_FILE.value,
+            DbQueryKeys.SELECT_TARGET_FILE.value,
+            DbQueryKeys.BACKUP_TARGET_FILE.value,
+            DbQueryKeys.CLEAN_TARGET_FILE.value,
+        ]
         ordered_files = {k: files[k] for k in desired_order if k in files}
         ordered_files.update({k: v for k, v in files.items() if k not in ordered_files})
 
@@ -241,7 +248,10 @@ class ProcessStructureV1(Reader):
                 )
 
                 if curr_order:
-                    query_names = [query["name"] for query in curr_order["queries"]]
+                    query_names = [
+                        query[AppendixKeys.NAME.value]
+                        for query in curr_order[AppendixKeys.QUERIES.value]
+                    ]
                     if current_dir in query_names:
                         table_list = [
                             item[AppendixKeys.NAME.value]

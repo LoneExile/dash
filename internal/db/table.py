@@ -17,12 +17,16 @@ class DbTable(Db):
         self.name_escaping = cfg.Postgres.PgNameEscaping
         self.helpers = Helpers()
 
-    def list_tables(self, db_target: str):
+    def list_tables(self, db_target: str, schema: str = "public"):
+        print(f"Listing tables in {db_target} schema {schema}")
         try:
-            table_list = self.dbm.list_tables(db_target)
+            if self.dbm.conn is None:
+                self.dbm.init_connection(db_target, schema)
+
+            table_list = self.dbm.list_tables(db_target, schema)
             self.fmt.print_table(table_list, ["Table Name", "Size"])
 
-            total_table_size = str(self.dbm.sum_table_sizes(db_target))
+            total_table_size = str(self.dbm.sum_table_sizes(db_target, schema))
             self.fmt.print(
                 f"Total Table Size: [bold green]{total_table_size} [/bold green]"
             )
