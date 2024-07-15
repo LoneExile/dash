@@ -1,0 +1,86 @@
+apiVersion: v1
+chapters:
+  apiVersion1:
+    db: HistoricalLgd
+    queries:
+      - name: ResultIndex
+        type: partial
+      - name: Dashboards
+        type: partial
+      - name: ResultConsolidatedChainLadderDefinitions
+        type: partial
+      - name: ResultConsolidatedChainLadderWithRegressionDefinitions
+        type: partial
+      - name: ResultConsolidatedCollateralizedChainLadderDefinitions
+        type: partial
+      - name: ResultConsolidatedVintageDefinitions
+        type: partial
+      - name: ResultConsolidatedWorkoutDefinitions
+        type: partial
+
+      ## ResultId
+      - name: ResultChainLadderWithRegressions
+        type: partial
+      - name: ResultChainLadders
+        type: partial
+      - name: ResultCollateralizedChainLadders
+        type: partial
+      - name: ResultContracts
+        type: partial
+      - name: ResultHops
+        type: partial
+      - name: ResultRejects
+        type: partial
+      - name: ResultSegmentCollections
+        type: partial
+      - name: ResultVintages
+        type: partial
+      - name: ResultWorkouts
+        type: partial
+
+      ## ConsolidatedChainLadderId
+      - name: ResultConsolidatedChainLadderDiscountRates
+        type: partial
+      - name: ResultConsolidatedChainLadderRecoveries
+        type: partial
+      - name: ResultConsolidatedChainLadders
+        type: partial
+
+      ## ConsolidatedChainLadderWithRegressionId
+      - name: ResultConsolidatedChainLadderWithRegressionRecoveries
+        type: partial
+      - name: ResultConsolidatedChainLadderWithRegressions
+        type: partial
+
+      ## ConsolidatedCollateralizedChainLadderId
+      - name: ResultConsolidatedCollateralizedChainLadderDiscountRates
+        type: partial
+      - name: ResultConsolidatedCollateralizedChainLadderRecoveries
+        type: partial
+      - name: ResultConsolidatedCollateralizedChainLadders
+        type: partial
+
+      ## ConsolidatedVintageId
+      - name: ResultConsolidatedVintageRecoveries
+        type: partial
+      - name: ResultConsolidatedVintages
+        type: partial
+
+      ## ConsolidatedWorkoutId
+      - name: ResultConsolidatedWorkouts
+        type: partial
+
+      ## CollectionId
+      - name: SegmentCollectionIndex
+        type: partial
+
+
+hook:
+  - name: CalculationLogs
+    type: partial
+  - name: CalculationProps
+    type: partial
+  - name: ResultProcessed
+    type: partial
+  - name: Calculations
+    type: partial
