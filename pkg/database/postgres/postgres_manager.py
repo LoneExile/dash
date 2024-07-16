@@ -48,6 +48,17 @@ class PostgresManager(Postgres):
             )
         return pg_dump_path
 
+    def get_pg_restore_path(self):
+        """Find the path to the pg_restore executable."""
+        pg_restore_path = subprocess.run(
+            ["which", "pg_restore"], capture_output=True, text=True
+        ).stdout.strip()
+        if not pg_restore_path:
+            raise EnvironmentError(
+                "pg_restore command not found. Please ensure PostgreSQL client is installed and in PATH."
+            )
+        return pg_restore_path
+
     def list_databases(self, db_target) -> Tuple[List[str], List[Tuple[str, str]]]:
         """List all non-template databases and their sizes."""
         if self.conn is None:
@@ -231,6 +242,29 @@ class PostgresManager(Postgres):
             f"{psql_path} --host {self.host} --port {self.port} "
             f"--username {self.user} --dbname {self.database_name} "
             f"--file {sql_file_path}"
+        )
+
+        subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            capture_output=True,
+            text=True,
+            universal_newlines=True,
+            env={"PGPASSWORD": self.password},
+        )
+
+    def run_query_pg_restore(self, sql_file_path, db_target=None):
+        """Run a SQL query file using pg_restore."""
+        if self.conn is None:
+            self.init_connection(db_target)
+
+        pg_restore_path = self.get_pg_restore_path()
+
+        command = (
+            f"{pg_restore_path} --host {self.host} --port {self.port} "
+            f"--username {self.user} --dbname {self.database_name} "
+            f"--disable-triggers --verbose {sql_file_path}"
         )
 
         subprocess.run(

@@ -127,6 +127,7 @@ def main(
                         v1.s3_bucket = bucket
                         v1.is_hook = is_hook
                         v1.hook_path = hook_path
+                        v1.is_date = False
                         with Live((Group(status, progress))):
                             status.update("[bold green]Status = Started[/bold green]")
                             v1.process_structure_v1(dir_struc, ModeKeys.RESORE_TABLE)
