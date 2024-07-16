@@ -1,2 +1,2 @@
-DELETE FROM "CalculationLogs"
+DELETE FROM "{{ CURRENT_DIR }}"
 WHERE "CalculationId" IN ({{ ID_LIST }})

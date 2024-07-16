@@ -1,4 +1,4 @@
-WITH calculation_table_registry AS (
+WITH output AS (
     SELECT "CalculationId" AS calculationid
     FROM
         "{{ CURRENT_DIR }}"
@@ -10,4 +10,4 @@ SELECT SUM(PG_COLUMN_SIZE(ctr.*)) AS filesize
 FROM
     "{{ CURRENT_DIR }}" AS ctr
 WHERE
-    ctr."CalculationId" IN (SELECT calculationid FROM calculation_table_registry)
+    ctr."CalculationId" IN (SELECT calculationid FROM output)

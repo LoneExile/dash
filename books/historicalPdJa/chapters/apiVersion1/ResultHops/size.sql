@@ -1,4 +1,4 @@
-WITH calculation_table_registry AS (
+WITH output AS (
     SELECT "ResultId"
     FROM
         "ResultIndex"
@@ -11,4 +11,4 @@ SELECT
 FROM
     "{{ CURRENT_DIR }}" AS ctr
 WHERE
-    ctr."ResultId" IN (SELECT "ResultId" FROM calculation_table_registry)
+    ctr."ResultId" IN (SELECT "ResultId" FROM output)

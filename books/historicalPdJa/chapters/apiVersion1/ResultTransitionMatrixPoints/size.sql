@@ -1,4 +1,4 @@
-WITH calculation_table_registry AS (
+WITH output AS (
     SELECT "PointId"
     FROM
         "ResultTransitionMatrix"
@@ -11,4 +11,4 @@ SELECT
 FROM
     "{{ CURRENT_DIR }}" AS ctr
 WHERE
-    ctr."PointId" IN (SELECT "PointId" FROM calculation_table_registry)
+    ctr."PointId" IN (SELECT "PointId" FROM output)

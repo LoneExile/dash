@@ -6,9 +6,6 @@ WITH output AS (
         "CalculationId" IN ({{ ID_LIST }})
 )
 
-SELECT
-    SUM(PG_COLUMN_SIZE(ctr.*)) AS filesize
-FROM
-    "{{ CURRENT_DIR }}" AS ctr
+DELETE FROM "{{ CURRENT_DIR }}"
 WHERE
-    ctr."PointId" IN (SELECT "PointId" FROM output)
+    "PointId" IN (SELECT "PointId" FROM output)

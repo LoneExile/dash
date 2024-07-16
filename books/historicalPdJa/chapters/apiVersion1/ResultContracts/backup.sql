@@ -7,8 +7,9 @@ WITH output AS (
 )
 
 SELECT
-    SUM(PG_COLUMN_SIZE(ctr.*)) AS filesize
+    *
+INTO "{{ BACKUP_TABLE_NAME }}"
 FROM
-    "{{ CURRENT_DIR }}" AS ctr
+    "{{ CURRENT_DIR }}"
 WHERE
-    ctr."ResultId" IN (SELECT "ResultId" FROM output)
+    "ResultId" IN (SELECT "ResultId" FROM output)

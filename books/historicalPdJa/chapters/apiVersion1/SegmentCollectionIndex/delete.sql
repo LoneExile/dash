@@ -14,9 +14,6 @@ seg AS (
         "ResultId" IN (SELECT "ResultId" FROM output)
 )
 
-SELECT
-    SUM(PG_COLUMN_SIZE(ctr.*)) AS filesize
-FROM
-    "{{ CURRENT_DIR }}" AS ctr
+DELETE FROM "{{ CURRENT_DIR }}"
 WHERE
-    ctr."CollectionId" IN (SELECT "CollectionId" FROM seg)
+    "CollectionId" IN (SELECT "CollectionId" FROM seg)
