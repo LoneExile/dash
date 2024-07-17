@@ -1,4 +1,5 @@
 import os
+import shutil
 from enum import Enum
 from time import sleep
 from pkg.aws.s3 import S3
@@ -20,7 +21,7 @@ class ModeKeys(Enum):
 
 class DbQueryKeys(Enum):
     BACKUP_TABLE_NAME = "BACKUP_TABLE_NAME"
-    BACKUP_TABLE_PREFIX = "temp_backup_"
+    BACKUP_TABLE_PREFIX = "t_"
     BACKUP_TARGET_FILE = "backup.sql"
     CLEAN_TARGET_FILE = "delete.sql"
     INSPECTION_TARGET_FILE = "size.sql"
@@ -60,17 +61,22 @@ class ProcessStructureV1(Reader):
                     hook_path = os.path.join(
                         self.dir_name, AppendixKeys.HOOK.value, chapter, step
                     )
-                    filtered_list = list(filter(lambda x: hook_path in x, s3_contents))
+                    filtered_list = list(
+                        filter(
+                            lambda x: hook_path in x and x.endswith(".dump"),
+                            s3_contents,
+                        )
+                    )
                     for item in filtered_list:
                         if item.endswith(".sql") or item.endswith(".dump"):
                             prefix = "s3://" + os.path.join(self.s3_bucket, item)
                             print(f"Prefix hook: {prefix}")
                             temp_table = (
                                 DbQueryKeys.BACKUP_TABLE_PREFIX.value
-                                + chapter
-                                + "_"
-                                + AppendixKeys.HOOK.value
-                                + "_"
+                                # + chapter
+                                # + "_"
+                                # + AppendixKeys.HOOK.value
+                                # + "_"
                                 + step
                             )
                             tb.restore_table_from_s3(prefix, db)
@@ -88,7 +94,11 @@ class ProcessStructureV1(Reader):
                         chapter,
                         item[AppendixKeys.NAME.value],
                     )
-                    filtered_list = list(filter(lambda x: prefix in x, s3_contents))
+                    filtered_list = list(
+                        filter(
+                            lambda x: prefix in x and x.endswith(".dump"), s3_contents
+                        )
+                    )
                     for item in filtered_list:
                         if item.endswith(".sql") or item.endswith(".dump"):
                             prefix = "s3://" + os.path.join(self.s3_bucket, item)
@@ -107,8 +117,8 @@ class ProcessStructureV1(Reader):
 
                     temp_table = (
                         DbQueryKeys.BACKUP_TABLE_PREFIX.value
-                        + chapter
-                        + "_"
+                        # + chapter
+                        # + "_"
                         + item[AppendixKeys.NAME.value]
                     )
                     tb.restore_table_from_s3(prefix, db)
@@ -336,18 +346,22 @@ class ProcessStructureV1(Reader):
                 indexer,
                 table_list,
             )
-        elif mode == ModeKeys.RESORE_TABLE:
+        elif mode == ModeKeys.RESORE_TABLE and os.path.basename(current_path).endswith(
+            ".dump"
+        ):
+            # print("current_path", os.path.basename(current_path))
             if current_dir in table_list:
                 # self.pg.run_query_psql(current_path, db)
+                print(f"Table: {os.path.basename(current_path)}")
                 self.pg.run_query_pg_restore(current_path, db)
             else:
                 temp_table = (
                     DbQueryKeys.BACKUP_TABLE_PREFIX.value
-                    + self.current_chapter
-                    + "_"
+                    # + self.current_chapter
+                    # + "_"
                     + current_dir
                 )
-                print(f"Partial: {current_dir}")
+                print(f"Partial: {os.path.basename(current_path)}")
                 # self.pg.run_query_psql(current_path, db)
                 self.pg.run_query_pg_restore(current_path, db)
                 self.pg.insert_data_from_table(temp_table, current_dir, db)
@@ -405,12 +419,16 @@ class ProcessStructureV1(Reader):
                 list_table = self.pg.get_data_single_by_id(current_path, index, db)
                 if list_table:
                     for table in list_table:
-                        self._backup_specific_table(table, db, sql_file_path)
+                        self._backup_specific_table(
+                            table, db, sql_file_path, current_path
+                        )
         if self.clean and file_name == DbQueryKeys.CLEAN_TARGET_FILE.value:
             # self.pg.run_query(current_path, db)
             id_list = self._id_list(indexer)
             if len(indexer) != 0:
-                self.pg.run_query_template(current_path, db, ID_LIST=id_list)
+                self.pg.run_query_template(
+                    current_path, db, ID_LIST=id_list, CURRENT_DIR=current_dir
+                )
 
     def _create_backup_table(
         self, current_path, current_dir, db, sql_file_path, indexer
@@ -419,8 +437,8 @@ class ProcessStructureV1(Reader):
         if len(indexer) != 0:
             db_backup_table_name = (
                 DbQueryKeys.BACKUP_TABLE_PREFIX.value
-                + self.current_chapter
-                + "_"
+                # + self.current_chapter
+                # + "_"
                 + current_dir
             )
             try:
@@ -429,11 +447,45 @@ class ProcessStructureV1(Reader):
                     db,
                     BACKUP_TABLE_NAME=db_backup_table_name,
                     ID_LIST=id_list,
+                    CURRENT_DIR=current_dir,
                 )
                 if self.s3_bucket:
                     tb.table_name_original = current_dir
                     self.status.update(
                         "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
+                    )
+                    s3.upload_file(
+                        os.path.join(
+                            os.path.dirname(current_path),
+                            DbQueryKeys.BACKUP_TARGET_FILE.value,
+                        ),
+                        os.path.join(
+                            sql_file_path,
+                            DbQueryKeys.BACKUP_TARGET_FILE.value,
+                        ),
+                        self.s3_bucket,
+                    )
+                    s3.upload_file(
+                        os.path.join(
+                            os.path.dirname(current_path),
+                            DbQueryKeys.CLEAN_TARGET_FILE.value,
+                        ),
+                        os.path.join(
+                            sql_file_path,
+                            DbQueryKeys.CLEAN_TARGET_FILE.value,
+                        ),
+                        self.s3_bucket,
+                    )
+                    s3.upload_file(
+                        os.path.join(
+                            os.path.dirname(current_path),
+                            DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                        ),
+                        os.path.join(
+                            sql_file_path,
+                            DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                        ),
+                        self.s3_bucket,
                     )
                     tb.backup_table_s3(
                         db_backup_table_name,
@@ -448,16 +500,54 @@ class ProcessStructureV1(Reader):
                     self.bak.backup_table(
                         db_backup_table_name, current_dir, db, sql_file_path
                     )
+                    shutil.copyfile(
+                        os.path.join(
+                            os.path.dirname(current_path),
+                            DbQueryKeys.BACKUP_TARGET_FILE.value,
+                        ),
+                        os.path.join(
+                            sql_file_path, DbQueryKeys.BACKUP_TARGET_FILE.value
+                        ),
+                    )
+                    shutil.copyfile(
+                        os.path.join(
+                            os.path.dirname(current_path),
+                            DbQueryKeys.CLEAN_TARGET_FILE.value,
+                        ),
+                        os.path.join(
+                            sql_file_path, DbQueryKeys.CLEAN_TARGET_FILE.value
+                        ),
+                    )
+                    shutil.copyfile(
+                        os.path.join(
+                            os.path.dirname(current_path),
+                            DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                        ),
+                        os.path.join(
+                            sql_file_path, DbQueryKeys.INSPECTION_TARGET_FILE.value
+                        ),
+                    )
             except Exception as e:
                 self.fmt.print(f"Error: {e}")
             finally:
                 self.pg.drop_table(db_backup_table_name, db)
 
-    def _backup_specific_table(self, table, db, sql_file_path):
+    def _backup_specific_table(self, table, db, sql_file_path, current_path):
         if self.s3_bucket:
             tb.table_name_original = table
             self.status.update(
                 "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
+            )
+            s3.upload_file(
+                os.path.join(
+                    os.path.dirname(current_path),
+                    DbQueryKeys.SELECT_TARGET_FILE.value,
+                ),
+                os.path.join(
+                    sql_file_path,
+                    DbQueryKeys.SELECT_TARGET_FILE.value,
+                ),
+                self.s3_bucket,
             )
             tb.backup_table_s3(
                 table, os.path.join(sql_file_path, table + ".dump"), db, self.s3_bucket
@@ -465,6 +555,12 @@ class ProcessStructureV1(Reader):
         else:
             print(f"Backup table: {table}")
             self.bak.backup_table(table, table, db, sql_file_path)
+            shutil.copyfile(
+                os.path.join(
+                    os.path.dirname(current_path), DbQueryKeys.SELECT_TARGET_FILE.value
+                ),
+                os.path.join(sql_file_path, DbQueryKeys.SELECT_TARGET_FILE.value),
+            )
 
         if self.clean:
             self.pg.drop_table(table, db)
@@ -472,6 +568,7 @@ class ProcessStructureV1(Reader):
     def _create_appendix_file(self, backup_dir):
         appendix_file_path = os.path.join(backup_dir, AppendixKeys.FILE.value)
         with open(appendix_file_path, "w") as file:
+            self.appendix["date"] = {"start": self.start_date, "end": self.end_date}
             yaml.dump(self.appendix, file)
 
     def _create_appendix_file_s3(self):
@@ -517,10 +614,10 @@ class ProcessStructureV1(Reader):
         for hook in hooks:
             db_backup_table_name = (
                 DbQueryKeys.BACKUP_TABLE_PREFIX.value
-                + self.current_chapter
-                + "_"
-                + AppendixKeys.HOOK.value
-                + "_"
+                # + self.current_chapter
+                # + "_"
+                # + AppendixKeys.HOOK.value
+                # + "_"
                 + hook.get(AppendixKeys.NAME.value)
             )
             if (
@@ -592,11 +689,55 @@ class ProcessStructureV1(Reader):
                             db,
                             BACKUP_TABLE_NAME=db_backup_table_name,
                             ID_LIST=id_list,
+                            CURRENT_DIR=hook.get(AppendixKeys.NAME.value),
                         )
                         if self.s3_bucket:
                             tb.table_name_original = hook.get(AppendixKeys.NAME.value)
                             self.status.update(
                                 "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
+                            )
+                            print("target_backup_path", target_backup_path)
+                            s3.upload_file(
+                                os.path.join(
+                                    os.path.dirname(backup_path),
+                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
+                                ),
+                                os.path.join(
+                                    self.dir_name,
+                                    AppendixKeys.HOOK.value,
+                                    self.current_chapter,
+                                    hook.get(AppendixKeys.NAME.value),
+                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
+                                ),
+                                self.s3_bucket,
+                            )
+                            s3.upload_file(
+                                os.path.join(
+                                    os.path.dirname(backup_path),
+                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
+                                ),
+                                os.path.join(
+                                    self.dir_name,
+                                    AppendixKeys.HOOK.value,
+                                    self.current_chapter,
+                                    hook.get(AppendixKeys.NAME.value),
+                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
+                                ),
+                                self.s3_bucket,
+                            )
+                            s3.upload_file(
+                                os.path.join(
+                                    os.path.dirname(backup_path),
+                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                                ),
+                                os.path.join(
+                                    self.dir_name,
+                                    AppendixKeys.HOOK.value,
+                                    self.current_chapter,
+                                    hook.get(AppendixKeys.NAME.value),
+                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                                ),
+                                self.s3_bucket,
                             )
                             tb.backup_table_s3(
                                 db_backup_table_name,
@@ -620,11 +761,46 @@ class ProcessStructureV1(Reader):
                                 db,
                                 target_backup_path,
                             )
+                            shutil.copyfile(
+                                os.path.join(
+                                    os.path.dirname(backup_path),
+                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
+                                ),
+                                os.path.join(
+                                    target_backup_path,
+                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
+                                ),
+                            )
+                            shutil.copyfile(
+                                os.path.join(
+                                    os.path.dirname(backup_path),
+                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
+                                ),
+                                os.path.join(
+                                    target_backup_path,
+                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
+                                ),
+                            )
+                            shutil.copyfile(
+                                os.path.join(
+                                    os.path.dirname(backup_path),
+                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                                ),
+                                os.path.join(
+                                    target_backup_path,
+                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                                ),
+                            )
                     except Exception as e:
                         self.fmt.print(f"Error: {e}")
                     finally:
                         if self.clean:
-                            self.pg.run_query_template(delete_path, db, ID_LIST=id_list)
+                            self.pg.run_query_template(
+                                delete_path,
+                                db,
+                                ID_LIST=id_list,
+                                CURRENT_DIR=hook.get(AppendixKeys.NAME.value),
+                            )
                         self.pg.drop_table(db_backup_table_name, db)
             elif (
                 hook.get(AppendixKeys.TYPE.value) == DbQueryKeys.TYPE_PARTIAL.value

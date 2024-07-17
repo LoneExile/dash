@@ -261,21 +261,24 @@ class PostgresManager(Postgres):
 
         pg_restore_path = self.get_pg_restore_path()
 
-        command = (
-            f"{pg_restore_path} --host {self.host} --port {self.port} "
-            f"--username {self.user} --dbname {self.database_name} "
-            f"--disable-triggers --verbose {sql_file_path}"
-        )
+        try:
+            command = (
+                f"{pg_restore_path} --host {self.host} --port {self.port} "
+                f"--username {self.user} --dbname {self.database_name} "
+                f"--disable-triggers --verbose {sql_file_path}"
+            )
 
-        subprocess.run(
-            command,
-            shell=True,
-            check=True,
-            capture_output=True,
-            text=True,
-            universal_newlines=True,
-            env={"PGPASSWORD": self.password},
-        )
+            subprocess.run(
+                command,
+                shell=True,
+                check=True,
+                capture_output=True,
+                text=True,
+                universal_newlines=True,
+                env={"PGPASSWORD": self.password},
+            )
+        except Exception as e:
+            print(f"An error occurred: {e}")
 
     def insert_data_from_table(self, source_table, target_table, db_target=None):
         """Insert data from one table to another."""

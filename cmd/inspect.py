@@ -27,11 +27,12 @@ v1 = ProcessStructureV1()
 
 @inspector.callback()
 def main(
-    target: Annotated[
+    database: Annotated[
         str,
         typer.Option(
-            "--target",
-            "-t",
+            "--database",
+            "-d",
+            # "-t",
             help="The database to inspect table.",
         ),
     ] = None,
@@ -49,6 +50,14 @@ def main(
             "--book",
             "-b",
             help="Inspect by Book.",
+        ),
+    ] = None,
+    backup_dir: Annotated[
+        str,
+        typer.Option(
+            "--backup-dir",
+            "-B",
+            help="Backup directory.",
         ),
     ] = None,
     bucket: Annotated[
@@ -72,19 +81,17 @@ def main(
             help="End date for backup.",
         ),
     ] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
-    # dir_name: Annotated[
-    #     str,
-    #     typer.Option(
-    #         "--name",
-    #         "-n",
-    #         help="Name of the backup.",
-    #     ),
-    # ] = None,
 ):
     """Inspect the database."""
-    if target is not None:
-        tb.list_tables(target, schema)
-    elif book is not None:
+
+    # if database is not None and book is not None:
+    #     raise typer.BadParameter("Cannot use --database and --book together.")
+
+    if database is not None:
+        tb.list_tables(database, schema)
+
+    # Code is unreachable  81:9:11Pyright
+    if book is not None:
         path = cfg.Books.Location + book
         is_path = os.path.exists(path)
         if not is_path:
@@ -105,6 +112,12 @@ def main(
 
         if start_date is not None:
             is_date = True
+        elif rm.appendix.get("date"):
+            is_date = True
+            start_date = rm.appendix["date"]["start"]
+            end_date = rm.appendix["date"]["end"]
+            print(f"Start Date: {start_date}")
+            print(f"End Date: {end_date}")
         else:
             is_date = False
 
@@ -130,7 +143,6 @@ def main(
                     v1.start_date = start_date
                     v1.end_date = end_date
                     v1.is_date = is_date
-                    v1.start_date = start_date
                     v1.end_date = end_date
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")

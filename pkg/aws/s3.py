@@ -1,7 +1,9 @@
+import logging
 import re
 
 import boto3
 import botocore.exceptions
+from botocore.exceptions import ClientError
 from internal.db import Db
 from pkg.aws import Aws
 from smart_open import open
@@ -84,3 +86,11 @@ class S3(Aws):
                             cur.execute(buffer)
                             db.conn.commit()
                     buffer = ""
+
+    def upload_file(self, file_name, key, bucket):
+        try:
+            self.client.upload_file(Filename=file_name, Bucket=bucket, Key=key)
+        except ClientError as e:
+            logging.error(e)
+            return False
+        return True
