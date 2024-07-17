@@ -44,7 +44,7 @@ def main(
         typer.Option(
             "--book",
             "-b",
-            help="Inspect by Book.",
+            help="Backup by Book.",
         ),
     ] = None,
     clean: Annotated[
@@ -67,7 +67,8 @@ def main(
         typer.Option(
             "--name",
             "-n",
-            help="Name of the backup.",
+            "-d",
+            help="Name of the backup directory.",
         ),
     ] = None,
     no_confirm: Annotated[
@@ -125,6 +126,12 @@ def main(
 
         if start_date is not None:
             is_date = True
+        elif rm.appendix.get("date"):
+            is_date = True
+            start_date = rm.appendix["date"]["start"]
+            end_date = rm.appendix["date"]["end"]
+            print(f"Start Date: {start_date}")
+            print(f"End Date: {end_date}")
         else:
             is_date = False
 
