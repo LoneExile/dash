@@ -256,6 +256,40 @@ class ProcessStructureV1(Reader):
                         START_DATE=self.start_date,
                         END_DATE=self.end_date,
                     )
+                    upper_upper_dir = os.path.basename(
+                        os.path.dirname(os.path.dirname(base_path))
+                    )
+                    index_path = os.path.join(
+                        self.cfg.Postgres.PgBackupDir,
+                        self.dir_name,
+                        upper_dir,
+                        current_dir,
+                    )
+                    index_path_s3 = os.path.join(self.dir_name, upper_dir, current_dir)
+                    if self.s3_bucket and mode == ModeKeys.BACKUP_CREATE_TABLE:
+                        s3.upload_file(
+                            os.path.join(
+                                os.path.dirname(current_path),
+                                DbQueryKeys.INDEX_TARGET_FILE.value,
+                            ),
+                            os.path.join(
+                                index_path_s3,
+                                DbQueryKeys.INDEX_TARGET_FILE.value,
+                            ),
+                            self.s3_bucket,
+                        )
+                    elif mode == ModeKeys.BACKUP_CREATE_TABLE:
+                        if not os.path.exists(index_path):
+                            os.makedirs(index_path)
+                        shutil.copyfile(
+                            os.path.join(
+                                os.path.dirname(current_path),
+                                DbQueryKeys.INDEX_TARGET_FILE.value,
+                            ),
+                            os.path.join(
+                                index_path, DbQueryKeys.INDEX_TARGET_FILE.value
+                            ),
+                        )
                 curr_order = self.appendix[AppendixKeys.CHAPTERS.value].get(
                     upper_dir, []
                 )
@@ -334,7 +368,11 @@ class ProcessStructureV1(Reader):
             self._inspect_size_sql(
                 current_path, db, current_dir, upper_dir, sum, indexer
             )
-        elif mode == ModeKeys.INSPECT and current_dir in table_list:
+        elif (
+            mode == ModeKeys.INSPECT
+            and current_dir in table_list
+            and (file_name == DbQueryKeys.SELECT_TARGET_FILE.value)
+        ):
             self._inspect_table_size(current_path, indexer, db, sum)
         elif mode == ModeKeys.BACKUP_CREATE_TABLE:
             self._backup_table(
@@ -607,6 +645,30 @@ class ProcessStructureV1(Reader):
             .get(AppendixKeys.DB.value)
         )
 
+        if self.s3_bucket and mode == ModeKeys.BACKUP_CREATE_TABLE:
+            print("hook_base_path", hook_base_path)
+            s3.upload_directory_to_s3(
+                hook_base_path,
+                self.s3_bucket,
+                os.path.join(self.dir_name, AppendixKeys.HOOK.value),
+            )
+        elif mode == ModeKeys.BACKUP_CREATE_TABLE:
+            if not os.path.exists(
+                os.path.join(
+                    self.cfg.Postgres.PgBackupDir,
+                    self.dir_name,
+                    AppendixKeys.HOOK.value,
+                )
+            ):
+                shutil.copytree(
+                    hook_base_path,
+                    os.path.join(
+                        self.cfg.Postgres.PgBackupDir,
+                        self.dir_name,
+                        AppendixKeys.HOOK.value,
+                    ),
+                )
+
         id_list = self._id_list(indexer)
         if mode == ModeKeys.RESORE_TABLE:
             hooks.reverse()
@@ -697,48 +759,48 @@ class ProcessStructureV1(Reader):
                                 "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
                             )
                             print("target_backup_path", target_backup_path)
-                            s3.upload_file(
-                                os.path.join(
-                                    os.path.dirname(backup_path),
-                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
-                                ),
-                                os.path.join(
-                                    self.dir_name,
-                                    AppendixKeys.HOOK.value,
-                                    self.current_chapter,
-                                    hook.get(AppendixKeys.NAME.value),
-                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
-                                ),
-                                self.s3_bucket,
-                            )
-                            s3.upload_file(
-                                os.path.join(
-                                    os.path.dirname(backup_path),
-                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
-                                ),
-                                os.path.join(
-                                    self.dir_name,
-                                    AppendixKeys.HOOK.value,
-                                    self.current_chapter,
-                                    hook.get(AppendixKeys.NAME.value),
-                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
-                                ),
-                                self.s3_bucket,
-                            )
-                            s3.upload_file(
-                                os.path.join(
-                                    os.path.dirname(backup_path),
-                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
-                                ),
-                                os.path.join(
-                                    self.dir_name,
-                                    AppendixKeys.HOOK.value,
-                                    self.current_chapter,
-                                    hook.get(AppendixKeys.NAME.value),
-                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
-                                ),
-                                self.s3_bucket,
-                            )
+                            # s3.upload_file(
+                            #     os.path.join(
+                            #         os.path.dirname(backup_path),
+                            #         DbQueryKeys.BACKUP_TARGET_FILE.value,
+                            #     ),
+                            #     os.path.join(
+                            #         self.dir_name,
+                            #         AppendixKeys.HOOK.value,
+                            #         self.current_chapter,
+                            #         hook.get(AppendixKeys.NAME.value),
+                            #         DbQueryKeys.BACKUP_TARGET_FILE.value,
+                            #     ),
+                            #     self.s3_bucket,
+                            # )
+                            # s3.upload_file(
+                            #     os.path.join(
+                            #         os.path.dirname(backup_path),
+                            #         DbQueryKeys.CLEAN_TARGET_FILE.value,
+                            #     ),
+                            #     os.path.join(
+                            #         self.dir_name,
+                            #         AppendixKeys.HOOK.value,
+                            #         self.current_chapter,
+                            #         hook.get(AppendixKeys.NAME.value),
+                            #         DbQueryKeys.CLEAN_TARGET_FILE.value,
+                            #     ),
+                            #     self.s3_bucket,
+                            # )
+                            # s3.upload_file(
+                            #     os.path.join(
+                            #         os.path.dirname(backup_path),
+                            #         DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                            #     ),
+                            #     os.path.join(
+                            #         self.dir_name,
+                            #         AppendixKeys.HOOK.value,
+                            #         self.current_chapter,
+                            #         hook.get(AppendixKeys.NAME.value),
+                            #         DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                            #     ),
+                            #     self.s3_bucket,
+                            # )
                             tb.backup_table_s3(
                                 db_backup_table_name,
                                 os.path.join(
@@ -761,36 +823,36 @@ class ProcessStructureV1(Reader):
                                 db,
                                 target_backup_path,
                             )
-                            shutil.copyfile(
-                                os.path.join(
-                                    os.path.dirname(backup_path),
-                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
-                                ),
-                                os.path.join(
-                                    target_backup_path,
-                                    DbQueryKeys.BACKUP_TARGET_FILE.value,
-                                ),
-                            )
-                            shutil.copyfile(
-                                os.path.join(
-                                    os.path.dirname(backup_path),
-                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
-                                ),
-                                os.path.join(
-                                    target_backup_path,
-                                    DbQueryKeys.CLEAN_TARGET_FILE.value,
-                                ),
-                            )
-                            shutil.copyfile(
-                                os.path.join(
-                                    os.path.dirname(backup_path),
-                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
-                                ),
-                                os.path.join(
-                                    target_backup_path,
-                                    DbQueryKeys.INSPECTION_TARGET_FILE.value,
-                                ),
-                            )
+                            # shutil.copyfile(
+                            #     os.path.join(
+                            #         os.path.dirname(backup_path),
+                            #         DbQueryKeys.BACKUP_TARGET_FILE.value,
+                            #     ),
+                            #     os.path.join(
+                            #         target_backup_path,
+                            #         DbQueryKeys.BACKUP_TARGET_FILE.value,
+                            #     ),
+                            # )
+                            # shutil.copyfile(
+                            #     os.path.join(
+                            #         os.path.dirname(backup_path),
+                            #         DbQueryKeys.CLEAN_TARGET_FILE.value,
+                            #     ),
+                            #     os.path.join(
+                            #         target_backup_path,
+                            #         DbQueryKeys.CLEAN_TARGET_FILE.value,
+                            #     ),
+                            # )
+                            # shutil.copyfile(
+                            #     os.path.join(
+                            #         os.path.dirname(backup_path),
+                            #         DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                            #     ),
+                            #     os.path.join(
+                            #         target_backup_path,
+                            #         DbQueryKeys.INSPECTION_TARGET_FILE.value,
+                            #     ),
+                            # )
                     except Exception as e:
                         self.fmt.print(f"Error: {e}")
                     finally:

@@ -1,5 +1,7 @@
 import logging
 import re
+import os
+from pathlib import Path
 
 import boto3
 import botocore.exceptions
@@ -94,3 +96,17 @@ class S3(Aws):
             logging.error(e)
             return False
         return True
+
+    def upload_directory_to_s3(self, directory: str, bucket: str, key: str) -> None:
+        for path in Path(directory).rglob("*"):
+            if path.is_file():
+                ## TODO: fix to only once time
+                self.client.upload_file(
+                    path,
+                    bucket,
+                    os.path.join(
+                        key,
+                        os.path.basename(os.path.dirname(path)),
+                        os.path.basename(path),
+                    ),
+                )

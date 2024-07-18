@@ -97,45 +97,6 @@ class DbTable(Db):
             self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
             os.exit(1)
 
-    # def restore_table_from_s3(self, s3_url, db_target):
-    #     session = s3.session
-    #     s3_client = session.client("s3")
-
-    #     try:
-    #         if self.dbm.conn is None:
-    #             self.dbm.init_connection(db_target)
-
-    #         pg_restore_path = self.dbm.get_pg_restore_path()
-
-    #         command = (
-    #             f"{pg_restore_path} --host {self.dbm.host} --port {self.dbm.port} "
-    #             f"--username {self.dbm.user} --dbname {db_target} --disable-triggers --verbose"
-    #         )
-
-    #         with open(
-    #             s3_url, "rb", transport_params={"client": s3_client}
-    #         ) as fin, subprocess.Popen(
-    #             command,
-    #             stdin=subprocess.PIPE,
-    #             env={"PGPASSWORD": self.dbm.password},
-    #             shell=True,
-    #         ) as process:
-    #             i = 0
-    #             for chunk in fin:
-    #                 process.stdin.write(chunk)
-    #                 i += 1
-    #             print(i)
-
-    #             process.stdin.close()
-    #             process.wait()
-
-    #             if process.returncode != 0:
-    #                 raise Exception(
-    #                     f"psql restore failed with return code {process.returncode}"
-    #                 )
-
-    #     except Exception as e:
-    #         self.fmt.print(f"An error occurred: [bold red]{e}[/bold red]")
     def restore_table_from_s3(self, s3_url, db_target):
         session = s3.session
         s3_client = session.client("s3")
