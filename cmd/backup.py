@@ -126,7 +126,7 @@ def main(
 
         if start_date is not None:
             is_date = True
-        elif rm.appendix.get("date"):
+        elif rm.appendix.get("date") and rm.appendix["date"]["start"]:
             is_date = True
             start_date = rm.appendix["date"]["start"]
             end_date = rm.appendix["date"]["end"]

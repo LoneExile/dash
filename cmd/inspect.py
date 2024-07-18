@@ -91,8 +91,13 @@ def main(
         tb.list_tables(database, schema)
 
     # Code is unreachable  81:9:11Pyright
-    if book is not None:
-        path = cfg.Books.Location + book
+    if book is not None or backup_dir is not None:
+        if backup_dir is not None:
+            dir = backup_dir
+            path = cfg.Postgres.PgBackupDir + backup_dir
+        else:
+            dir = book
+            path = cfg.Books.Location + book
         is_path = os.path.exists(path)
         if not is_path:
             raise typer.BadParameter(f"Path does not exist: {path}")
@@ -112,7 +117,7 @@ def main(
 
         if start_date is not None:
             is_date = True
-        elif rm.appendix.get("date"):
+        elif rm.appendix.get("date") and rm.appendix["date"]["start"]:
             is_date = True
             start_date = rm.appendix["date"]["start"]
             end_date = rm.appendix["date"]["end"]
@@ -120,6 +125,10 @@ def main(
             print(f"End Date: {end_date}")
         else:
             is_date = False
+
+        print(f"is_date: {is_date}")
+        print(f"start_date: {start_date}")
+        print(f"end_date: {end_date}")
 
         match rm.appendix["apiVersion"]:
             case "v1":
@@ -137,9 +146,9 @@ def main(
                     v1.s3_bucket = bucket
                     v1.is_hook = is_hook
                     v1.hook_path = hook_path
-                    if book is not None:
-                        v1.dir_name = book
-                    v1.book = book
+                    if dir is not None:
+                        v1.dir_name = dir
+                    v1.dir = dir
                     v1.start_date = start_date
                     v1.end_date = end_date
                     v1.is_date = is_date
