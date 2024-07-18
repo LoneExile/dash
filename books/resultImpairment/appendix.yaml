@@ -24,6 +24,10 @@ chapters:
         type: partial
       - name: ResultViews
         type: partial
+      - name: thisIsTable
+        type: table
+      - name: CalculationTableRegistry
+        type: partial
   # version3:
   #   db: Ifrs9Impairment
   #   queries:
