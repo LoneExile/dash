@@ -1,4 +1,5 @@
 import os
+import traceback
 from datetime import datetime
 
 import typer
@@ -159,6 +160,7 @@ def main(
                         status.update("[bold green]Status = Completed[/bold green]")
                         status.stop()
                 except Exception as e:
+                    traceback.print_exc()
                     typer.echo(f"Error: {e}")
             case _:
                 raise Exception("apiVersion not supported")
