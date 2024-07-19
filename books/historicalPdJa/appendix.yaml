@@ -6,24 +6,15 @@ chapters:
   apiVersion1:
     db: HistoricalPd
     queries:
-      - name: ResultIndex
-        type: partial
-      - name: ResultTransitionMatrix
-        type: partial
-      - name: ResultCohorts
-        type: partial
-
-      ## ResultId
+      ## CalculationId => ResultId
       - name: ResultContracts
         type: partial
       - name: ResultHops
         type: partial
       - name: ResultRejects
         type: partial
-      - name: ResultSegmentCollections
-        type: partial
 
-      ## ConsolidatedTransitionId
+      ## CalculationId => ConsolidatedTransitionId
       - name: ResultCohortWithMarginalDefaults
         type: partial
       - name: ResultConsolidatedCohortWithMarginalDefaults
@@ -33,14 +24,26 @@ chapters:
       - name: ResultConsolidatedTransitionMatrix
         type: partial
 
-      ## PointId
+      ## CalculationId => PointId
       - name: ResultTransitionMatrixCounterparties
         type: partial
       - name: ResultTransitionMatrixPoints
         type: partial
 
-      ##  ResultId -> CollectionId
+      ## CalculationId => ResultId => CollectionId
       - name: SegmentCollectionIndex
+        type: partial
+
+      ## CalculationId => ResultId (depends on SegmentCollectionIndex)
+      - name: ResultSegmentCollections
+        type: partial
+
+      ## CalculationId
+      - name: ResultIndex
+        type: partial
+      - name: ResultTransitionMatrix
+        type: partial
+      - name: ResultCohorts
         type: partial
 
   apiVersion2:

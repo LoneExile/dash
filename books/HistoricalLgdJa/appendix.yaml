@@ -6,22 +6,7 @@ chapters:
   apiVersion1:
     db: HistoricalLgd
     queries:
-      - name: ResultIndex
-        type: partial
-      - name: Dashboards
-        type: partial
-      - name: ResultConsolidatedChainLadderDefinitions
-        type: partial
-      - name: ResultConsolidatedChainLadderWithRegressionDefinitions
-        type: partial
-      - name: ResultConsolidatedCollateralizedChainLadderDefinitions
-        type: partial
-      - name: ResultConsolidatedVintageDefinitions
-        type: partial
-      - name: ResultConsolidatedWorkoutDefinitions
-        type: partial
-
-      ## ResultId
+      ## CalculationId => ResultId
       - name: ResultChainLadderWithRegressions
         type: partial
       - name: ResultChainLadders
@@ -34,14 +19,12 @@ chapters:
         type: partial
       - name: ResultRejects
         type: partial
-      - name: ResultSegmentCollections
-        type: partial
       - name: ResultVintages
         type: partial
       - name: ResultWorkouts
         type: partial
 
-      ## ConsolidatedChainLadderId
+      ## CalculationId => ConsolidatedChainLadderId
       - name: ResultConsolidatedChainLadderDiscountRates
         type: partial
       - name: ResultConsolidatedChainLadderRecoveries
@@ -49,13 +32,13 @@ chapters:
       - name: ResultConsolidatedChainLadders
         type: partial
 
-      ## ConsolidatedChainLadderWithRegressionId
+      ## CalculationId => ConsolidatedChainLadderWithRegressionId
       - name: ResultConsolidatedChainLadderWithRegressionRecoveries
         type: partial
       - name: ResultConsolidatedChainLadderWithRegressions
         type: partial
 
-      ## ConsolidatedCollateralizedChainLadderId
+      ## CalculationId => ConsolidatedCollateralizedChainLadderId
       - name: ResultConsolidatedCollateralizedChainLadderDiscountRates
         type: partial
       - name: ResultConsolidatedCollateralizedChainLadderRecoveries
@@ -63,20 +46,39 @@ chapters:
       - name: ResultConsolidatedCollateralizedChainLadders
         type: partial
 
-      ## ConsolidatedVintageId
+      ## CalculationId => ConsolidatedVintageId
       - name: ResultConsolidatedVintageRecoveries
         type: partial
       - name: ResultConsolidatedVintages
         type: partial
 
-      ## ConsolidatedWorkoutId
+      ## CalculationId => ConsolidatedWorkoutId
       - name: ResultConsolidatedWorkouts
         type: partial
 
-      ## CollectionId
+      ## CalculationId => ResultId => CollectionId
       - name: SegmentCollectionIndex
         type: partial
 
+      ## CalculationId => ResultId (depends on SegmentCollectionIndex)
+      - name: ResultSegmentCollections
+        type: partial
+
+      ## CalculationId
+      - name: Dashboards
+        type: partial
+      - name: ResultConsolidatedChainLadderDefinitions
+        type: partial
+      - name: ResultConsolidatedChainLadderWithRegressionDefinitions
+        type: partial
+      - name: ResultConsolidatedCollateralizedChainLadderDefinitions
+        type: partial
+      - name: ResultConsolidatedVintageDefinitions
+        type: partial
+      - name: ResultConsolidatedWorkoutDefinitions
+        type: partial
+      - name: ResultIndex
+        type: partial
 
 hook:
   - name: CalculationLogs
