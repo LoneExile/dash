@@ -171,11 +171,16 @@ class ProcessStructureV1(Reader):
                     indexer,
                     sum,
                 )
-                if self.running_chapter[-1] == dir_name and self.is_hook:
+                if (
+                    self.running_chapter
+                    and self.running_chapter[-1] == dir_name
+                    and self.is_hook
+                ):
                     self._process_hooks(mode, indexer, sum)
 
                 if (
-                    self.running_chapter[-1] == dir_name
+                    self.running_chapter
+                    and self.running_chapter[-1] == dir_name
                     and mode is not ModeKeys.RESORE_TABLE
                 ):
                     self.pg.close_connection()
