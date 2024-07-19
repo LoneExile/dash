@@ -1,0 +1,12 @@
+*.bak
+**.bak
+
+tests
+
+backup
+.ruff_cache
+demo
+reset.sh
+
+__pycache__**
+__pycache__/
