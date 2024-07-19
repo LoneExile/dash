@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  dash:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    # volumes:
+    #   - ./dash_data:/dash
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+    mem_swappiness: 0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+# volumes:
+#   dash_data:
+#     driver_opts:
+#       o: "size=900m"
+#       device: tmpfs
+#       type: tmpfs
