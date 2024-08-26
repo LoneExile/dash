@@ -1,4 +1,5 @@
 import os
+import traceback
 from datetime import datetime
 from typing import Optional
 
@@ -14,9 +15,13 @@ from rich.progress import (
 )
 from typing_extensions import Annotated
 
-from internal.db.database import DbDatabase
-from internal.db.table import DbTable
+from internal.db.pg.database import DbDatabase
+from internal.db.pg.table import DbTable
+from internal.db.sqlite.database import DbDatabaseSqlite
+
+# from internal.db.sqlite
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
+from internal.reader.process_structure_v2 import ModeKeysV2, ProcessStructureV2
 from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
 from pkg.aws.s3 import S3
@@ -29,10 +34,12 @@ bak = DbBackup()
 fmt = TermFormatter()
 
 db = DbDatabase()
+sqlite = DbDatabaseSqlite()
 tb = DbTable()
 rm = ReaderManager()
 utils = Utils()
 v1 = ProcessStructureV1()
+v2 = ProcessStructureV2()
 s3 = S3()
 
 
@@ -170,6 +177,57 @@ def main(
                         status.stop()
 
                 except Exception as e:
+                    typer.echo(f"Error: {e}")
+            case "v2":
+                try:
+                    console = Console()
+                    status = console.status("Not started")
+                    progress = Progress(
+                        TextColumn("[progress.description]{task.description}"),
+                        # SpinnerColumn(),
+                        FileSizeColumn(),
+                    )
+                    backup_dir = os.path.join(cfg.Postgres.PgBackupDir, dir_name)
+                    os.makedirs(backup_dir, exist_ok=True)
+                    conn = sqlite.init(
+                        os.path.join(cfg.Postgres.PgBackupDir, dir_name, "index.db")
+                    )
+                    cur = conn.cursor()
+                    appendix_dir = utils.find_file("table_appendix.sql", path)
+                    if len(appendix_dir) >= 0:
+                        print(appendix_dir[0])
+                        table_appendix = appendix_dir[0]
+                        with open(table_appendix, "r") as sql_file:
+                            sql_script = sql_file.read()
+
+                        cur.execute(sql_script)
+
+                    v2.sqlite = cur
+                    v2.clean = clean
+                    v2.appendix = rm.appendix
+                    v2.book = book
+                    v2.s3_bucket = bucket
+                    v2.status = status
+                    v2.progress = progress
+                    v2.dir_name = dir_name
+                    v2.appendix_file_path = appendix_dir[0]
+                    v2.is_hook = is_hook
+                    v2.hook_path = hook_path
+                    v2.is_date = is_date
+                    v2.start_date = start_date
+                    if end_date is not None:
+                        v2.end_date = end_date
+                    else:
+                        v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+                    with Live((Group(status, progress))):
+                        status.update("[bold green]Status = Started[/bold green]")
+                        v2.process_structure_v2(dir_struc, ModeKeysV2.BACKUP_CREATE_TABLE)
+                        status.update("[bold green]Status = Completed[/bold green]")
+                        status.stop()
+
+                except Exception as e:
+                    traceback.print_exc()
                     typer.echo(f"Error: {e}")
             case _:
                 raise Exception("apiVersion not supported")

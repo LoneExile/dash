@@ -353,6 +353,24 @@ class PostgresManager(Postgres):
             data_list = [str(item[0]) for item in rows]
             return data_list
 
+    def get_data_list_v2(self, sql_file_path, db_target=None, **kwargs):
+        """Get data from a SQL query file."""
+        with open(sql_file_path, "r") as file:
+            query = file.read()
+
+        env = Environment()
+        template = env.from_string(query)
+        rendered_sql_query = template.render(**kwargs)
+
+        self.init_connection(db_target)
+
+        with self.conn.cursor() as cur:
+            cur.execute(rendered_sql_query)
+            rows = cur.fetchall()
+            data_list = [str(item[0]) for item in rows]
+            data_time = [str(item[1]) for item in rows]
+            return data_list, data_time
+
     def drop_table(self, table_name, db_target=None):
         """Drop a table."""
         if self.conn is None:
