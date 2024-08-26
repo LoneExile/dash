@@ -172,14 +172,14 @@ def main(
                         v2.dir_name = dir_name
                         v2.s3_bucket = bucket
                         v2.is_hook = is_hook
-                        v2.restore_v2()
                         v2.start_date = start_date
                         if end_date is not None:
                             v2.end_date = end_date
                         else:
-                            v2.end_date = datetime.utcnow().strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            )
+                            v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                        if select:
+                            v2.selected_list = select.split(",")
+                        v2.restore_v2()
 
     else:
         if dir_name is not None:
@@ -265,9 +265,7 @@ def main(
                         if end_date is not None:
                             v2.end_date = end_date
                         else:
-                            v2.end_date = datetime.utcnow().strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            )
+                            v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                         if select:
                             v2.selected_list = select.split(",")
                         with Live((Group(status, progress))):
