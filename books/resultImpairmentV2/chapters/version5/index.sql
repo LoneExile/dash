@@ -1,13 +1,13 @@
 SELECT
-    cal.calculationid,
-    cal.createdwhen
+    calculationid,
+    createdwhen
 FROM (
     SELECT
         c."CalculationId" AS calculationid,
         c."CreatedWhen" AS createdwhen,
         c."Data"::json ->> 'calculationSpecVersion' AS version
     FROM
-        "Calculations" AS c) AS cal
+        "Calculations" AS c) as cal
 WHERE
-    cal.version = '4'
+    version = '5'
     {{ IS_WHERE_DATE }} AND "CreatedWhen" BETWEEN '{{ START_DATE }}' AND '{{ END_DATE }}'

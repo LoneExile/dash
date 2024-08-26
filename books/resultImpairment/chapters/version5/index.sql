@@ -1,9 +1,10 @@
 SELECT
-    calculationid
+    calculationid,
+    createdwhen
 FROM (
     SELECT
         c."CalculationId" AS calculationid,
-        c."CreatedWhen",
+        c."CreatedWhen" AS createdwhen,
         c."Data"::json ->> 'calculationSpecVersion' AS version
     FROM
         "Calculations" AS c) as cal

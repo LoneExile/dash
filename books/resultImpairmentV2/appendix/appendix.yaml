@@ -1,0 +1,42 @@
+apiVersion: v2
+chapters:
+  version5:
+    db: Ifrs9Impairment
+    queries:
+      - name: CalculationMetrics
+        type: partial
+      - name: ResultViews
+        type: partial
+      - name: thisIsTable
+        type: table
+      - name: CalculationTableRegistry
+        type: partial
+  version4:
+    db: Ifrs9Impairment
+    queries:
+      - name: ResultImpairmentIndex
+        type: partial
+      - name: ResultImpairment
+        type: partial
+      - name: ResultSegmentImpairment
+        type: partial
+      - name: CalculationMetrics
+        type: partial
+      - name: ResultViews
+        type: partial
+      - name: thisIsTable
+        type: table
+      - name: CalculationTableRegistry
+        type: partial
+
+hook:
+  - name: CalculationLogs
+    type: partial
+  - name: CalculationProps
+    type: partial
+  - name: Calculations
+    type: partial
+  - name: CombinedCalculations
+    type: partial
+  - name: CalculationEvents
+    type: partial
