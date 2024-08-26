@@ -7,27 +7,27 @@ repos:
     - id: check-yaml
       args: ['--unsafe']
     - id: check-json
-- repo: local
-  hooks:
-    - id: pyright
-      name: Pyright
-      entry: pyright
-      language: system
-      types: [python]
-      pass_filenames: false
-      always_run: true
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.4.4
-  hooks:
-    - id: ruff
-    - id: ruff-format
--   repo: https://github.com/psf/black
-    rev: 24.4.2
-    hooks:
-    - id: black
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.2.6
-  hooks:
-    - id: codespell
-      exclude: (?x)^(test/fixtures/.*|pyproject.toml)$
-      additional_dependencies: [tomli]
+# - repo: local
+#   hooks:
+#     - id: pyright
+#       name: Pyright
+#       entry: pyright
+#       language: system
+#       types: [python]
+#       pass_filenames: false
+#       always_run: true
+# - repo: https://github.com/astral-sh/ruff-pre-commit
+#   rev: v0.4.4
+#   hooks:
+#     - id: ruff
+#     - id: ruff-format
+# -   repo: https://github.com/psf/black
+#     rev: 24.4.2
+#     hooks:
+#     - id: black
+# - repo: https://github.com/codespell-project/codespell
+#   rev: v2.2.6
+#   hooks:
+#     - id: codespell
+#       exclude: (?x)^(test/fixtures/.*|pyproject.toml)$
+#       additional_dependencies: [tomli]

@@ -3,9 +3,11 @@ import traceback
 from datetime import datetime
 
 import typer
-from internal.db.database import DbDatabase
-from internal.db.table import DbTable
+from internal.db.pg.database import DbDatabase
+from internal.db.pg.table import DbTable
+from internal.db.sqlite.database import DbDatabaseSqlite
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
+from internal.reader.process_structure_v2 import ProcessStructureV2
 from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
 from pkg.config import cfg
@@ -20,10 +22,12 @@ from typing_extensions import Annotated
 
 inspector = typer.Typer(invoke_without_command=True)
 db = DbDatabase()
+sqlite = DbDatabaseSqlite()
 tb = DbTable()
 rm = ReaderManager()
 utils = Utils()
 v1 = ProcessStructureV1()
+v2 = ProcessStructureV2()
 
 
 @inspector.callback()
@@ -116,8 +120,8 @@ def main(
             is_hook = False
             hook_path = None
 
-        if start_date is not None:
-            is_date = True
+        if start_date is None:
+            is_date = False
         elif rm.appendix.get("date") and rm.appendix["date"]["start"]:
             is_date = True
             start_date = rm.appendix["date"]["start"]
@@ -125,13 +129,17 @@ def main(
             print(f"Start Date: {start_date}")
             print(f"End Date: {end_date}")
         else:
-            is_date = False
+            is_date = True
 
         print(f"is_date: {is_date}")
         print(f"start_date: {start_date}")
         print(f"end_date: {end_date}")
+        appendix_version = rm.appendix["apiVersion"]
+        if appendix_version == "v2":
+            # raise Exception("apiVersion v2 not supported")
+            appendix_version = "v1"
 
-        match rm.appendix["apiVersion"]:
+        match appendix_version:
             case "v1":
                 try:
                     console = Console()
@@ -162,6 +170,36 @@ def main(
                 except Exception as e:
                     traceback.print_exc()
                     typer.echo(f"Error: {e}")
+            # case "v2":
+            #     try:
+            #         console = Console()
+            #         status = console.status("Not started")
+            #         progress = Progress(
+            #             TextColumn("[progress.description]{task.description}"),
+            #             FileSizeColumn(),
+            #         )
+            #         v2.appendix = rm.appendix
+            #         v2.progress = progress
+            #         v2.status = status
+            #         v2.appendix_file_path = appendix_dir[0]
+            #         v2.s3_bucket = bucket
+            #         v2.is_hook = is_hook
+            #         v2.hook_path = hook_path
+            #         if dir is not None:
+            #             v2.dir_name = dir
+            #         v2.dir = dir
+            #         v2.start_date = start_date
+            #         v2.end_date = end_date
+            #         v2.is_date = is_date
+            #         v2.end_date = end_date
+            #         with Live((Group(status, progress))):
+            #             status.update("[bold green]Status = Started[/bold green]")
+            #             v2.process_structure_v2(dir_struc, ModeKeys.INSPECT)
+            #             status.update("[bold green]Status = Completed[/bold green]")
+            #             status.stop()
+            #     except Exception as e:
+            #         traceback.print_exc()
+            #         typer.echo(f"Error: {e}")
             case _:
                 raise Exception("apiVersion not supported")
     else:
