@@ -93,11 +93,23 @@ class ProcessStructureV2(Reader):
                 #     self.start_date = self.appendix["date"]["start"]
                 #     self.end_date = self.appendix["date"]["end"]
                 if self.start_date:
+                    print("start_date: ", self.start_date)
                     cur.execute(
                         "SELECT * FROM appendix WHERE chapters = ? and created_at BETWEEN ? AND ?",
                         (chapter, self.start_date, self.end_date),
                     )
+                elif len(self.selected_list) > 0:
+                    print("selected_list: ", self.selected_list)
+                    if self.selected_list:
+                        placeholders = ",".join("?" for _ in self.selected_list)
+                        query = f"SELECT * FROM appendix WHERE chapters = ? and id IN ({placeholders})"
+                        params = (chapter, *self.selected_list)
+                    else:
+                        query = "SELECT * FROM appendix WHERE chapters = ?"
+                        params = (chapter,)
+                    cur.execute(query, params)
                 else:
+                    print("chapter: ", chapter)
                     cur.execute("SELECT * FROM appendix WHERE chapters = ?", (chapter,))
                 rows = cur.fetchall()
                 for row in rows:
