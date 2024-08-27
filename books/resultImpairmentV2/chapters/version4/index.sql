@@ -10,4 +10,4 @@ FROM (
         "Calculations" AS c) AS cal
 WHERE
     cal.version = '4'
-    {{ IS_WHERE_DATE }} AND "CreatedWhen" BETWEEN '{{ START_DATE }}' AND '{{ END_DATE }}'
+    {{ IS_WHERE_DATE }} AND "createdwhen" BETWEEN '{{ START_DATE }}' AND '{{ END_DATE }}'
