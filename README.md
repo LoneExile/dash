@@ -7,13 +7,25 @@
 - [pg_restore](https://www.postgresql.org/docs/16/app-pgrestore.html)
 - [psql](https://www.postgresql.org/docs/16/app-psql.html)
 
+### Ubuntu
+
+```bash
+sudo apt-get update && sudo apt-get upgrade
+sudo apt-get install postgresql-client
+```
+
 ### Install dependencies
+
+#### PIP
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## TODO
+#### Poetry
 
-- [ ] merge config files
-- [ ] tui
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+poetry shell
+poetry install
+```
