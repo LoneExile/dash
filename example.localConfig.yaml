@@ -1,0 +1,24 @@
+Database:
+  Type: postgres
+
+Books:
+  Location : ./books/
+  Play: demo
+
+Restore:
+  Temp: ./temp/
+
+Aws:
+  Region: ap-southeast-1
+  Bucket: myBucket
+  AccessKey:
+  SecretKey:
+
+Postgres:
+  PgDatabase: postgres
+  PgHost: localhost
+  PgPort: 5432
+  PgUsername: postgres
+  PgPassword: 123456
+  PgBackupDir: ./backup/
+  PgNameEscaping: true
