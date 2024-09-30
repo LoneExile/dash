@@ -16,16 +16,20 @@ db = Db().dbm
 class S3(Aws):
     def __init__(self):
         super().__init__()
-        self.client = boto3.client(
-            "s3",
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-            region_name=self.region,
-        )
-        self.session = boto3.Session(
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
-        )
+        if self.access_key and self.secret_key and self.region:
+            self.client = boto3.client(
+                "s3",
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+                region_name=self.region,
+            )
+            self.session = boto3.Session(
+                aws_access_key_id=self.access_key,
+                aws_secret_access_key=self.secret_key,
+            )
+        else:
+            self.client = boto3.client("s3")
+            self.session = boto3.Session()
 
     def is_valid_bucket_name(self, bucket_name):
         pattern = r"^[a-z0-9.-]{3,63}$"
