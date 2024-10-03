@@ -238,7 +238,9 @@ def main(
 
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
-                        v2.process_structure_v2(dir_struc, ModeKeysV2.BACKUP_CREATE_TABLE)
+                        v2.process_structure_v2(
+                            dir_struc, ModeKeysV2.BACKUP_CREATE_TABLE
+                        )
                         status.update("[bold green]Status = Completed[/bold green]")
                         status.stop()
 

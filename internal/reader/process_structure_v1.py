@@ -95,7 +95,9 @@ class ProcessStructureV1(Reader):
                         item[AppendixKeys.NAME.value],
                     )
                     filtered_list = list(
-                        filter(lambda x: prefix in x and x.endswith(".dump"), s3_contents)
+                        filter(
+                            lambda x: prefix in x and x.endswith(".dump"), s3_contents
+                        )
                     )
                     for item in filtered_list:
                         if item.endswith(".sql") or item.endswith(".dump"):
@@ -189,7 +191,9 @@ class ProcessStructureV1(Reader):
 
         if mode == ModeKeys.BACKUP_CREATE_TABLE and base_path == "":
             if self.s3_bucket is None:
-                self._create_appendix_file(self.cfg.Postgres.PgBackupDir + self.dir_name)
+                self._create_appendix_file(
+                    self.cfg.Postgres.PgBackupDir + self.dir_name
+                )
             else:
                 self._create_appendix_file_s3()
 
@@ -287,9 +291,13 @@ class ProcessStructureV1(Reader):
                                 os.path.dirname(current_path),
                                 DbQueryKeys.INDEX_TARGET_FILE.value,
                             ),
-                            os.path.join(index_path, DbQueryKeys.INDEX_TARGET_FILE.value),
+                            os.path.join(
+                                index_path, DbQueryKeys.INDEX_TARGET_FILE.value
+                            ),
                         )
-                curr_order = self.appendix[AppendixKeys.CHAPTERS.value].get(upper_dir, [])
+                curr_order = self.appendix[AppendixKeys.CHAPTERS.value].get(
+                    upper_dir, []
+                )
 
                 if curr_order:
                     query_names = [
@@ -355,12 +363,16 @@ class ProcessStructureV1(Reader):
         sql_file_path,
         sum,
     ):
-        db = self.appendix[AppendixKeys.CHAPTERS.value][upper_dir][AppendixKeys.DB.value]
+        db = self.appendix[AppendixKeys.CHAPTERS.value][upper_dir][
+            AppendixKeys.DB.value
+        ]
         if (
             mode == ModeKeys.INSPECT
             and file_name == DbQueryKeys.INSPECTION_TARGET_FILE.value
         ):
-            self._inspect_size_sql(current_path, db, current_dir, upper_dir, sum, indexer)
+            self._inspect_size_sql(
+                current_path, db, current_dir, upper_dir, sum, indexer
+            )
         elif (
             mode == ModeKeys.INSPECT
             and current_dir in table_list
@@ -461,7 +473,9 @@ class ProcessStructureV1(Reader):
                     current_path, db, ID_LIST=id_list, CURRENT_DIR=current_dir
                 )
 
-    def _create_backup_table(self, current_path, current_dir, db, sql_file_path, indexer):
+    def _create_backup_table(
+        self, current_path, current_dir, db, sql_file_path, indexer
+    ):
         id_list = self._id_list(indexer)
         if len(indexer) != 0:
             db_backup_table_name = (
@@ -534,14 +548,18 @@ class ProcessStructureV1(Reader):
                             os.path.dirname(current_path),
                             DbQueryKeys.BACKUP_TARGET_FILE.value,
                         ),
-                        os.path.join(sql_file_path, DbQueryKeys.BACKUP_TARGET_FILE.value),
+                        os.path.join(
+                            sql_file_path, DbQueryKeys.BACKUP_TARGET_FILE.value
+                        ),
                     )
                     shutil.copyfile(
                         os.path.join(
                             os.path.dirname(current_path),
                             DbQueryKeys.CLEAN_TARGET_FILE.value,
                         ),
-                        os.path.join(sql_file_path, DbQueryKeys.CLEAN_TARGET_FILE.value),
+                        os.path.join(
+                            sql_file_path, DbQueryKeys.CLEAN_TARGET_FILE.value
+                        ),
                     )
                     shutil.copyfile(
                         os.path.join(
@@ -560,7 +578,9 @@ class ProcessStructureV1(Reader):
     def _backup_specific_table(self, table, db, sql_file_path, current_path):
         if self.s3_bucket:
             tb.table_name_original = table
-            self.status.update("[bold magenta1]Status = Uploading to S3[/bold magenta1]")
+            self.status.update(
+                "[bold magenta1]Status = Uploading to S3[/bold magenta1]"
+            )
             s3.upload_file(
                 os.path.join(
                     os.path.dirname(current_path),
@@ -799,7 +819,9 @@ class ProcessStructureV1(Reader):
                                 self.s3_bucket,
                             )
                         else:
-                            print(f"Backup partial: {hook.get(AppendixKeys.NAME.value)}")
+                            print(
+                                f"Backup partial: {hook.get(AppendixKeys.NAME.value)}"
+                            )
                             self.bak.backup_table(
                                 db_backup_table_name,
                                 hook.get(AppendixKeys.NAME.value),
