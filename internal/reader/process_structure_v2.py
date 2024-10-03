@@ -11,6 +11,7 @@ from internal.db.pg.table import DbTable
 from internal.reader import Reader
 from internal.utils import Utils
 from pkg.config import cfg
+from pkg.database.postgres.helpers import Helpers
 
 sqlite = DbDatabaseSqlite()
 tb = DbTable()
@@ -58,6 +59,8 @@ class ProcessStructureV2(Reader):
         self.running_chapter = []
         self.indexer_date = []
         self.selected_list = []
+        self.name_escaping = cfg.Postgres.PgNameEscaping
+        self.helpers = Helpers()
 
     def restore_v2(self):
         get_chapters = self.appendix.get(AppendixKeys.CHAPTERS.value, {})
@@ -107,6 +110,18 @@ class ProcessStructureV2(Reader):
                     else:
                         query = "SELECT * FROM appendix WHERE chapters = ?"
                         params = (chapter,)
+                    cur.execute(query, params)
+                elif self.custom:
+                    print("custom: ", self.custom)
+                    custom_query = ""
+                    custom_dict = {}
+                    for item in self.custom:
+                        key, value = item.split("=", 1)
+                        custom_dict[key] = value
+                    for key, value in custom_dict.items():
+                        custom_query += f"AND {key} = '{value}' "
+                    query = f"SELECT * FROM appendix WHERE chapters = ? {custom_query}"
+                    params = (chapter,)
                     cur.execute(query, params)
                 else:
                     print("chapter: ", chapter)
@@ -273,6 +288,24 @@ class ProcessStructureV2(Reader):
                                 self.current_chapter,
                                 indexer[x],
                             )
+
+                            custom_appendix_value = ","
+                            custom_appendix_key = ","
+                            if self.custom:
+                                custom_dict = {}
+                                for item in self.custom:
+                                    key, value = item.split("=", 1)
+                                    custom_dict[key] = value
+                                for i, (key, value) in enumerate(custom_dict.items()):
+                                    if i == len(custom_dict) - 1:
+                                        custom_appendix_value += f"'{value}'"
+                                        custom_appendix_key += f"{key}"
+                                    else:
+                                        custom_appendix_value += f"'{value}',"
+                                        custom_appendix_key += f"{key},"
+                                # print(
+                                #     f"custom_appendix: {custom_appendix_value} :: {appendix_insert_sql[0]}"
+                                # )
                             if self.s3_bucket:
                                 sqlite.run_query_template(
                                     self.sqlite,
@@ -281,6 +314,8 @@ class ProcessStructureV2(Reader):
                                     PREFIX_APPENDIX=loc_s3,
                                     CREATED_AT_APPENDIX=self.indexer_date[x],
                                     CHAPTERS_APPENDIX=self.current_chapter,
+                                    CUSTOM_APPENDIX_VALUE=custom_appendix_value,
+                                    CUSTOM_APPENDIX_KEY=custom_appendix_key,
                                 )
                             else:
                                 sqlite.run_query_template(
@@ -290,6 +325,8 @@ class ProcessStructureV2(Reader):
                                     PREFIX_APPENDIX=loc,
                                     CREATED_AT_APPENDIX=self.indexer_date[x],
                                     CHAPTERS_APPENDIX=self.current_chapter,
+                                    CUSTOM_APPENDIX_VALUE=custom_appendix_value,
+                                    CUSTOM_APPENDIX_KEY=custom_appendix_key,
                                 )
 
                 if (
@@ -365,6 +402,27 @@ class ProcessStructureV2(Reader):
                     is_where_clause_date = ""
                 else:
                     is_where_clause_date = "--"
+                if self.custom:
+                    custom_dict = {}
+                    custom_query = "WHERE "
+                    first_item = True
+                    for item in self.custom:
+                        key, value = item.split("=", 1)
+                        custom_dict[key] = value
+
+                    # print("Custom options:")
+                    for key, value in custom_dict.items():
+                        if self.name_escaping:
+                            key = '"' + key + '"'
+                        # print(f"  {key}: {value}")
+                        if first_item:
+                            custom_query += f"{key} = '{value}' "
+                            first_item = False
+                        else:
+                            custom_query += f"AND {key} = '{value}' "
+                else:
+                    custom_query = ""
+                # print(f"custom_query: {custom_query}")
                 if file_name == DbQueryKeys.INDEX_TARGET_FILE.value:
                     indexer[:], self.indexer_date = self.pg.get_data_list_v2(
                         current_path,
@@ -374,7 +432,10 @@ class ProcessStructureV2(Reader):
                         IS_WHERE_DATE=is_where_clause_date,
                         START_DATE=self.start_date,
                         END_DATE=self.end_date,
+                        CUSTOM_WHERE=custom_query,
                     )
+                    # print(f"indexer: {indexer}")
+                    # print(f"indexer_date: {self.indexer_date}")
                     upper_upper_dir = os.path.basename(
                         os.path.dirname(os.path.dirname(base_path))
                     )
@@ -385,7 +446,7 @@ class ProcessStructureV2(Reader):
                         query[AppendixKeys.NAME.value]
                         for query in curr_order[AppendixKeys.QUERIES.value]
                     ]
-                    print(f"Running Chapter: {self.running_chapter}")
+                    # print(f"Running Chapter: {self.running_chapter}")
                     if current_dir in query_names:
                         table_list = [
                             item[AppendixKeys.NAME.value]
@@ -447,7 +508,7 @@ class ProcessStructureV2(Reader):
         sql_file_path,
         sum,
     ):
-        print(f"Running Chapter: {self.running_chapter}")
+        # print(f"Running Chapter: {self.running_chapter}")
         db = self.appendix[AppendixKeys.CHAPTERS.value][upper_dir][AppendixKeys.DB.value]
         if (
             mode == ModeKeysV2.INSPECT

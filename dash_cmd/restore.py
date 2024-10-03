@@ -14,7 +14,7 @@ from rich.progress import (
     Progress,
     TextColumn,
 )
-from typing_extensions import Annotated
+from typing_extensions import Annotated, List
 
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from internal.reader.process_structure_v2 import ProcessStructureV2  # , ModeKeysV2
@@ -83,6 +83,13 @@ def main(
             help="End date for backup.",
         ),
     ] = None,
+    custom: Annotated[
+        List[str],
+        typer.Option(
+            "--custom",
+            help="Custom query for backup.",
+        ),
+    ] = None,
 ):
     """Restore database."""
     if not no_confirm:
@@ -91,6 +98,7 @@ def main(
     if not confirm:
         raise typer.Abort()
 
+    is_date = False
     if start_date is not None:
         is_date = True
     # elif rm.appendix.get("date") and rm.appendix["date"]["start"]:
@@ -99,10 +107,8 @@ def main(
     #     end_date = rm.appendix["date"]["end"]
     #     print(f"Start Date: {start_date}")
     #     print(f"End Date: {end_date}")
-    else:
-        is_date = False
 
-    if bucket is not None:
+    if bucket:
         # ---------------------------------------------------------------------
         print(f"Restoring up database: [bold blue]{bucket}:: {dir_name}[/bold blue]")
         os.makedirs(cfg.Restore.Temp, exist_ok=True)
@@ -173,10 +179,10 @@ def main(
                         v2.s3_bucket = bucket
                         v2.is_hook = is_hook
                         v2.start_date = start_date
+                        v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                        v2.custom = custom
                         if end_date is not None:
                             v2.end_date = end_date
-                        else:
-                            v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                         if select:
                             v2.selected_list = select.split(",")
                         v2.restore_v2()
@@ -262,6 +268,7 @@ def main(
                         v2.hook_path = hook_path
                         v2.is_date = is_date
                         v2.start_date = start_date
+                        v2.custom = custom
                         if end_date is not None:
                             v2.end_date = end_date
                         else:
