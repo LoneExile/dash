@@ -7,7 +7,7 @@ chapters:
         type: partial
       - name: ResultViews
         type: partial
-      - name: thisIsTable
+      - name: CalculationTable # This name can be anything
         type: table
       - name: CalculationTableRegistry
         type: partial
@@ -24,7 +24,7 @@ chapters:
         type: partial
       - name: ResultViews
         type: partial
-      - name: thisIsTable
+      - name: CalculationTable # This name can be anything
         type: table
       - name: CalculationTableRegistry
         type: partial

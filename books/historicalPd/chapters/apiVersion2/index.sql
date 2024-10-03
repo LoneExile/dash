@@ -8,7 +8,7 @@ FROM (
         c."Data"::json ->> 'calculationSpecVersion' AS version
     FROM
         "Calculations" AS c
-    {{ CUSTOM_WHERE }}) as cal
+    {{ CUSTOM_WHERE }}) AS calculations
 WHERE
-    version = '5'
+    version = '2'
     {{ IS_WHERE_DATE }} AND "createdwhen" BETWEEN '{{ START_DATE }}' AND '{{ END_DATE }}'
