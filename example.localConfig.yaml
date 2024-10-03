@@ -10,7 +10,7 @@ Restore:
 
 Aws:
   Region: ap-southeast-1
-  Bucket: myBucket
+  # Bucket: myBucket
   AccessKey:
   SecretKey:
 

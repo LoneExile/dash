@@ -7,7 +7,7 @@ from internal.db.pg.database import DbDatabase
 from internal.db.pg.table import DbTable
 from internal.db.sqlite.database import DbDatabaseSqlite
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
-from internal.reader.process_structure_v2 import ProcessStructureV2
+from internal.reader.process_structure_v2 import ModeKeysV2, ProcessStructureV2
 from internal.reader.reader_manager import ReaderManager
 from internal.utils import Utils
 from pkg.config import cfg
@@ -18,7 +18,7 @@ from rich.progress import (
     Progress,
     TextColumn,
 )
-from typing_extensions import Annotated
+from typing_extensions import Annotated, List
 
 inspector = typer.Typer(invoke_without_command=True)
 db = DbDatabase()
@@ -86,6 +86,13 @@ def main(
             help="End date for backup.",
         ),
     ] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+    custom: Annotated[
+        List[str],
+        typer.Option(
+            "--custom",
+            help="Custom query for backup.",
+        ),
+    ] = None,
 ):
     """Inspect the database."""
 
@@ -135,9 +142,6 @@ def main(
         print(f"start_date: {start_date}")
         print(f"end_date: {end_date}")
         appendix_version = rm.appendix["apiVersion"]
-        if appendix_version == "v2":
-            # raise Exception("apiVersion v2 not supported")
-            appendix_version = "v1"
 
         match appendix_version:
             case "v1":
@@ -170,36 +174,37 @@ def main(
                 except Exception as e:
                     traceback.print_exc()
                     typer.echo(f"Error: {e}")
-            # case "v2":
-            #     try:
-            #         console = Console()
-            #         status = console.status("Not started")
-            #         progress = Progress(
-            #             TextColumn("[progress.description]{task.description}"),
-            #             FileSizeColumn(),
-            #         )
-            #         v2.appendix = rm.appendix
-            #         v2.progress = progress
-            #         v2.status = status
-            #         v2.appendix_file_path = appendix_dir[0]
-            #         v2.s3_bucket = bucket
-            #         v2.is_hook = is_hook
-            #         v2.hook_path = hook_path
-            #         if dir is not None:
-            #             v2.dir_name = dir
-            #         v2.dir = dir
-            #         v2.start_date = start_date
-            #         v2.end_date = end_date
-            #         v2.is_date = is_date
-            #         v2.end_date = end_date
-            #         with Live((Group(status, progress))):
-            #             status.update("[bold green]Status = Started[/bold green]")
-            #             v2.process_structure_v2(dir_struc, ModeKeys.INSPECT)
-            #             status.update("[bold green]Status = Completed[/bold green]")
-            #             status.stop()
-            #     except Exception as e:
-            #         traceback.print_exc()
-            #         typer.echo(f"Error: {e}")
+            case "v2":
+                try:
+                    console = Console()
+                    status = console.status("Not started")
+                    progress = Progress(
+                        TextColumn("[progress.description]{task.description}"),
+                        FileSizeColumn(),
+                    )
+                    v2.appendix = rm.appendix
+                    v2.progress = progress
+                    v2.status = status
+                    v2.appendix_file_path = appendix_dir[0]
+                    v2.s3_bucket = bucket
+                    v2.is_hook = is_hook
+                    v2.hook_path = hook_path
+                    if dir is not None:
+                        v2.dir_name = dir
+                    v2.dir = dir
+                    v2.start_date = start_date
+                    v2.end_date = end_date
+                    v2.is_date = is_date
+                    v2.end_date = end_date
+                    v2.custom = custom
+                    with Live((Group(status, progress))):
+                        status.update("[bold green]Status = Started[/bold green]")
+                        v2.process_structure_v2(dir_struc, ModeKeysV2.INSPECT)
+                        status.update("[bold green]Status = Completed[/bold green]")
+                        status.stop()
+                except Exception as e:
+                    traceback.print_exc()
+                    typer.echo(f"Error: {e}")
             case _:
                 raise Exception("apiVersion not supported")
     else:

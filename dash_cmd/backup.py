@@ -13,7 +13,7 @@ from rich.progress import (
     Progress,
     TextColumn,
 )
-from typing_extensions import Annotated
+from typing_extensions import Annotated, List
 
 from internal.db.pg.database import DbDatabase
 from internal.db.pg.table import DbTable
@@ -101,8 +101,30 @@ def main(
             help="End date for backup.",
         ),
     ] = None,
+    custom: Annotated[
+        List[str],
+        typer.Option(
+            "--custom",
+            help="Custom query for backup.",
+        ),
+    ] = None,
 ):
     """Backup database."""
+
+    print(f"custom: {custom}")
+
+    # if custom:
+    #     custom_dict = {}
+    #     for item in custom:
+    #         key, value = item.split("=", 1)
+    #         custom_dict[key] = value
+
+    #     print("Custom options:")
+    #     for key, value in custom_dict.items():
+    #         print(f"  {key}: {value}")
+
+    # raise typer.Abort()
+    ################################
     if not no_confirm:
         fmt.print("[bold red]Are you sure you want to proceed?[/bold red]")
     confirm = no_confirm or input("(y/N): ").lower() in ("y", "yes")
@@ -189,18 +211,35 @@ def main(
                     )
                     backup_dir = os.path.join(cfg.Postgres.PgBackupDir, dir_name)
                     os.makedirs(backup_dir, exist_ok=True)
+                    sqlite_index = os.path.join(
+                        cfg.Postgres.PgBackupDir, dir_name, "index.db"
+                    )
+                    if os.path.exists(sqlite_index):
+                        os.remove(sqlite_index)
                     conn = sqlite.init(
-                        os.path.join(cfg.Postgres.PgBackupDir, dir_name, "index.db")
+                        sqlite_index,
                     )
                     cur = conn.cursor()
                     appendix_dir = utils.find_file("table_appendix.sql", path)
                     if len(appendix_dir) >= 0:
-                        print(appendix_dir[0])
                         table_appendix = appendix_dir[0]
-                        with open(table_appendix, "r") as sql_file:
-                            sql_script = sql_file.read()
+                        custom_appendix = ","
+                        if custom:
+                            custom_dict = {}
+                            for item in custom:
+                                key, value = item.split("=", 1)
+                                custom_dict[key] = value
+                            for i, (key, value) in enumerate(custom_dict.items()):
+                                if i == len(custom_dict) - 1:
+                                    custom_appendix += f"{key}"
+                                else:
+                                    custom_appendix += f"{key} text,"
 
-                        cur.execute(sql_script)
+                        sqlite.run_query_template(
+                            cur,
+                            table_appendix,
+                            CUSTOM_APPENDIX=custom_appendix,
+                        )
 
                     v2.sqlite = cur
                     v2.clean = clean
@@ -215,10 +254,10 @@ def main(
                     v2.hook_path = hook_path
                     v2.is_date = is_date
                     v2.start_date = start_date
+                    v2.custom = custom
+                    v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     if end_date is not None:
                         v2.end_date = end_date
-                    else:
-                        v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
