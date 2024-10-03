@@ -7,7 +7,6 @@ import typer
 from rich.console import Console, Group
 from rich.live import Live
 
-# from rich.panel import Panel
 from rich.progress import (
     FileSizeColumn,
     Progress,
@@ -19,7 +18,6 @@ from internal.db.pg.database import DbDatabase
 from internal.db.pg.table import DbTable
 from internal.db.sqlite.database import DbDatabaseSqlite
 
-# from internal.db.sqlite
 from internal.reader.process_structure_v1 import ModeKeys, ProcessStructureV1
 from internal.reader.process_structure_v2 import ModeKeysV2, ProcessStructureV2
 from internal.reader.reader_manager import ReaderManager
@@ -110,28 +108,13 @@ def main(
     ] = None,
 ):
     """Backup database."""
-
-    print(f"custom: {custom}")
-
-    # if custom:
-    #     custom_dict = {}
-    #     for item in custom:
-    #         key, value = item.split("=", 1)
-    #         custom_dict[key] = value
-
-    #     print("Custom options:")
-    #     for key, value in custom_dict.items():
-    #         print(f"  {key}: {value}")
-
-    # raise typer.Abort()
-    ################################
     if not no_confirm:
         fmt.print("[bold red]Are you sure you want to proceed?[/bold red]")
     confirm = no_confirm or input("(y/N): ").lower() in ("y", "yes")
     if not confirm:
         raise typer.Abort()
 
-    if book is not None:
+    if book:
         path = cfg.Books.Location + book
         is_path = os.path.exists(path)
         if not is_path:
@@ -153,16 +136,11 @@ def main(
             is_hook = False
             hook_path = None
 
-        if start_date is not None:
-            is_date = True
-        elif rm.appendix.get("date") and rm.appendix["date"]["start"]:
+        is_date = False
+        if rm.appendix.get("date") and rm.appendix["date"]["start"]:
             is_date = True
             start_date = rm.appendix["date"]["start"]
             end_date = rm.appendix["date"]["end"]
-            print(f"Start Date: {start_date}")
-            print(f"End Date: {end_date}")
-        else:
-            is_date = False
 
         match rm.appendix["apiVersion"]:
             case "v1":
@@ -187,10 +165,9 @@ def main(
                     v1.hook_path = hook_path
                     v1.is_date = is_date
                     v1.start_date = start_date
+                    v1.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                     if end_date is not None:
                         v1.end_date = end_date
-                    else:
-                        v1.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
@@ -261,7 +238,9 @@ def main(
 
                     with Live((Group(status, progress))):
                         status.update("[bold green]Status = Started[/bold green]")
-                        v2.process_structure_v2(dir_struc, ModeKeysV2.BACKUP_CREATE_TABLE)
+                        v2.process_structure_v2(
+                            dir_struc, ModeKeysV2.BACKUP_CREATE_TABLE
+                        )
                         status.update("[bold green]Status = Completed[/bold green]")
                         status.stop()
 
