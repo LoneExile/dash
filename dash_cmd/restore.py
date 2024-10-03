@@ -188,7 +188,7 @@ def main(
                         v2.restore_v2()
 
     else:
-        if dir_name is not None:
+        if dir_name:
             fmt.print(f"Restoring up database: [bold blue]{dir_name}[/bold blue]")
             path = dir_name
             is_path = os.path.exists(path)
@@ -269,10 +269,9 @@ def main(
                         v2.is_date = is_date
                         v2.start_date = start_date
                         v2.custom = custom
+                        v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                         if end_date is not None:
                             v2.end_date = end_date
-                        else:
-                            v2.end_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                         if select:
                             v2.selected_list = select.split(",")
                         with Live((Group(status, progress))):

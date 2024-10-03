@@ -531,18 +531,18 @@ class ProcessStructureV2(Reader):
                 indexer,
                 table_list,
             )
-        elif mode == ModeKeysV2.RESORE_TABLE and os.path.basename(current_path).endswith(
-            ".dump"
-        ):
-            if current_dir in table_list:
-                print(f"Table: {os.path.basename(current_path)}")
-                # self.pg.run_query_pg_restore(current_path, db)
-            else:
-                temp_table = DbQueryKeys.BACKUP_TABLE_PREFIX.value + current_dir
-                print(f"Partial: {os.path.basename(current_path)}")
-                # self.pg.run_query_pg_restore(current_path, db)
-                # self.pg.insert_data_from_table(temp_table, current_dir, db)
-                # self.pg.drop_table(temp_table, db)
+        # elif mode == ModeKeysV2.RESORE_TABLE and os.path.basename(current_path).endswith(
+        #     ".dump"
+        # ):
+        #     if current_dir in table_list:
+        #         print(f"Table: {os.path.basename(current_path)}")
+        #         # self.pg.run_query_pg_restore(current_path, db)
+        #     else:
+        #         temp_table = DbQueryKeys.BACKUP_TABLE_PREFIX.value + current_dir
+        #         print(f"Partial: {os.path.basename(current_path)}")
+        #         # self.pg.run_query_pg_restore(current_path, db)
+        #         # self.pg.insert_data_from_table(temp_table, current_dir, db)
+        #         # self.pg.drop_table(temp_table, db)
 
     def _inspect_size_sql(self, current_path, db, current_dir, upper_dir, sum, indexer):
         id_list = self._id_list(indexer)
@@ -669,7 +669,7 @@ class ProcessStructureV2(Reader):
             finally:
                 self.pg.drop_table(db_backup_table_name, db)
 
-    def _backup_specific_table(self, table, db, sql_file_path, current_path=None):
+    def _backup_specific_table(self, table, db, sql_file_path):
         if self.s3_bucket:
             tb.table_name_original = table
             self.status.update("[bold magenta1]Status = Uploading to S3[/bold magenta1]")

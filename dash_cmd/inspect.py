@@ -96,20 +96,15 @@ def main(
 ):
     """Inspect the database."""
 
-    # if database is not None and book is not None:
-    #     raise typer.BadParameter("Cannot use --database and --book together.")
-
     if database is not None:
         tb.list_tables(database, schema)
 
-    # Code is unreachable  81:9:11Pyright
-    if book is not None or backup_dir is not None:
+    if book or backup_dir:
+        dir = book
+        path = cfg.Books.Location + book
         if backup_dir is not None:
             dir = backup_dir
             path = cfg.Postgres.PgBackupDir + backup_dir
-        else:
-            dir = book
-            path = cfg.Books.Location + book
         is_path = os.path.exists(path)
         if not is_path:
             raise typer.BadParameter(f"Path does not exist: {path}")
@@ -127,16 +122,11 @@ def main(
             is_hook = False
             hook_path = None
 
-        if start_date is None:
-            is_date = False
-        elif rm.appendix.get("date") and rm.appendix["date"]["start"]:
+        is_date = False
+        if rm.appendix.get("date") and rm.appendix["date"]["start"]:
             is_date = True
             start_date = rm.appendix["date"]["start"]
             end_date = rm.appendix["date"]["end"]
-            print(f"Start Date: {start_date}")
-            print(f"End Date: {end_date}")
-        else:
-            is_date = True
 
         print(f"is_date: {is_date}")
         print(f"start_date: {start_date}")
